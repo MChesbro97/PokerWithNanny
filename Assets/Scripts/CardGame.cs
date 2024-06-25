@@ -151,7 +151,13 @@ public class CardGame : MonoBehaviour
 
     private int CompareBestCards(List<Card> bestCards1, List<Card> bestCards2)
     {
-
+        for (int i = 0; i < bestCards1.Count; i++)
+        {
+            if (bestCards1[i].Value > bestCards2[i].Value)
+                return 1; // Player 1 wins
+            else if (bestCards1[i].Value < bestCards2[i].Value)
+                return -1; // Player 2 wins
+        }
         return 0;
     }
 }

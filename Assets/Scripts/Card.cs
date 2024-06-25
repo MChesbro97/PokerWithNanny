@@ -5,10 +5,10 @@ using UnityEngine;
 public class Card
 {
     public string Suit { get; private set; }
-    public string Value { get; private set; }
+    public int Value { get; private set; }
     public Sprite CardSprite { get; private set; }
 
-    public Card(string suit, string value, Sprite cardSprite)
+    public Card(string suit, int value, Sprite cardSprite)
     {
         Suit = suit;
         Value = value;

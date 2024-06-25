@@ -37,7 +37,92 @@ public class PokerHandEvaluator
     private List<Card> DetermineBestCards(List<Card> hand, HandRank handRank)
     {
 
-        return new List<Card>;
+        switch (handRank)
+        {
+            case HandRank.HighCard:
+                return DetermineHighCard(hand);
+            case HandRank.OnePair:
+                return DeterminePairCards(hand);
+            case HandRank.TwoPair:
+                return DetermineTwoPairCards(hand);
+            case HandRank.ThreeOfAKind:
+                return DetermineThreeOfAKindCards(hand);
+            case HandRank.Straight:
+                return DetermineStraightCards(hand);
+            case HandRank.Flush:
+                return DetermineFlushCards(hand);
+            case HandRank.FullHouse:
+                return DetermineFullHouseCards(hand);
+            case HandRank.FourOfAKind:
+                return DetermineFourOfAkindCards(hand);
+            case HandRank.StraightFlush:
+                return DetermineStraightFlushCards(hand);
+            case HandRank.RoyalFlush:
+                return DetermineRoyalFlushCards(hand);
+            case HandRank.FiveOfAKind:
+                return DetermineFiveOfAKindCards(hand);
+            default:
+                return hand;
+        }
+    }
+
+    private List<Card> DetermineFiveOfAKindCards(List<Card> hand)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    private List<Card> DetermineRoyalFlushCards(List<Card> hand)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    private List<Card> DetermineStraightFlushCards(List<Card> hand)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    private List<Card> DetermineFourOfAkindCards(List<Card> hand)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    private List<Card> DetermineFullHouseCards(List<Card> hand)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    private List<Card> DetermineFlushCards(List<Card> hand)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    private List<Card> DetermineStraightCards(List<Card> hand)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    private List<Card> DetermineThreeOfAKindCards(List<Card> hand)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    private List<Card> DetermineTwoPairCards(List<Card> hand)
+    {
+        var groupedByValue = hand.GroupBy(card => card.Value);
+        var pairs = groupedByValue.Where(group => group.Count() == 2).Take(2);
+        return pairs.SelectMany(pair => pair).ToList();
+    }
+
+    private List<Card> DeterminePairCards(List<Card> hand)
+    {
+        var groupedByValue = hand.GroupBy(card => card.Value);
+        var pairGroup = groupedByValue.FirstOrDefault(group => group.Count() == 2);
+        return pairGroup?.ToList() ?? new List<Card>();
+    }
+
+    private List<Card> DetermineHighCard(List<Card> hand)
+    {
+        return hand.OrderByDescending(card => card.Value).Take(1).ToList();
     }
 
     private int CalculateRankWeight(HandRank handRank, List<Card> hand)
@@ -131,11 +216,11 @@ public class PokerHandEvaluator
         hand.Sort((a, b) => a.Value.CompareTo(b.Value));
 
         // Check for Royal Flush (A, K, Q, J, 10 in the same suit)
-        return hand[0].Value == "01" &&    // Ace
-               hand[1].Value == "10" &&   // 10
-               hand[2].Value == "11" &&   // Jack (J)
-               hand[3].Value == "12" &&   // Queen (Q)
-               hand[4].Value == "13";     //King (K)
+        return hand[0].Value == 01 &&    // Ace
+               hand[1].Value == 10 &&   // 10
+               hand[2].Value == 11 &&   // Jack (J)
+               hand[3].Value == 12 &&   // Queen (Q)
+               hand[4].Value == 13;     //King (K)
 
     }
 

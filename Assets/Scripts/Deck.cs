@@ -6,10 +6,10 @@ public class Deck
 {
     public List<Card> cards;
     private static readonly string[] Suits = { "Club", "Diamond", "Heart", "Spade" };
-    private static readonly string[] Values =
-    {
-        "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13"
-    };
+    //private static readonly string[] Values =
+    //{
+    //    "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13"
+    //};
 
     public Deck()
     {
@@ -21,7 +21,7 @@ public class Deck
         cards = new List<Card>();
         foreach (string suit in Suits)
         {
-            foreach (string value in Values)
+            for (int value = 1; value <= 13; value++)
             {
                 Sprite cardSprite = LoadCardSprite(value, suit);
                 cards.Add(new Card(suit, value, cardSprite));
@@ -29,7 +29,7 @@ public class Deck
         }
     }
 
-    private Sprite LoadCardSprite(string value, string suit)
+    private Sprite LoadCardSprite(int value, string suit)
     {
         string path = $"PlayingCards/{suit}{value}";
         return Resources.Load<Sprite>(path);
