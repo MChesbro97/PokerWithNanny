@@ -6,10 +6,6 @@ public class Deck
 {
     public List<Card> cards;
     private static readonly string[] Suits = { "Club", "Diamond", "Heart", "Spade" };
-    //private static readonly string[] Values =
-    //{
-    //    "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13"
-    //};
 
     public Deck()
     {
@@ -21,7 +17,7 @@ public class Deck
         cards = new List<Card>();
         foreach (string suit in Suits)
         {
-            for (int value = 1; value <= 13; value++)
+            for (int value = 2; value <= 14; value++)
             {
                 Sprite cardSprite = LoadCardSprite(value, suit);
                 cards.Add(new Card(suit, value, cardSprite));

@@ -68,42 +68,99 @@ public class PokerHandEvaluator
 
     private List<Card> DetermineFiveOfAKindCards(List<Card> hand)
     {
-        throw new System.NotImplementedException();
+        var groupedByValue = hand.GroupBy(card => card.Value);
+        var fiveOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() == 5);
+        return fiveOfAKindGroup?.ToList() ?? new List<Card>();
     }
 
     private List<Card> DetermineRoyalFlushCards(List<Card> hand)
     {
-        throw new System.NotImplementedException();
+        var sortedHand = hand.OrderBy(card => card.HighValue).ToList();
+        if (IsRoyalFlush(sortedHand))
+            return sortedHand;
+
+        return new List<Card>();
+    }
+    private bool IsRoyalFlush(List<Card> sortedHand)
+    {
+        return IsStraightFlush(sortedHand) && sortedHand.Min(card => card.HighValue) == 10;
     }
 
     private List<Card> DetermineStraightFlushCards(List<Card> hand)
     {
-        throw new System.NotImplementedException();
+        var sortedHand = hand.OrderBy(card => card.HighValue).ToList();
+        if (IsStraightFlush(sortedHand))
+            return sortedHand;
+
+        sortedHand = hand.OrderBy(card => card.Value).ToList(); // Ace as 1
+        if (IsStraightFlush(sortedHand))
+            return sortedHand;
+
+        return new List<Card>();
+    }
+    private bool IsStraightFlush(List<Card> sortedHand)
+    {
+        return sortedHand.All(card => card.Suit == sortedHand[0].Suit) && IsStraight(sortedHand);
     }
 
     private List<Card> DetermineFourOfAkindCards(List<Card> hand)
     {
-        throw new System.NotImplementedException();
+        var groupedByValue = hand.GroupBy(card => card.Value);
+        var fourOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() == 4);
+        return fourOfAKindGroup?.ToList() ?? new List<Card>();
     }
 
     private List<Card> DetermineFullHouseCards(List<Card> hand)
     {
-        throw new System.NotImplementedException();
+        var groupedByValue = hand.GroupBy(card => card.Value);
+        var threeOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() == 3);
+        var pairGroup = groupedByValue.FirstOrDefault(group => group.Count() == 2);
+        var fullHouse = new List<Card>();
+        if (threeOfAKindGroup != null)
+        {
+            fullHouse.AddRange(threeOfAKindGroup);
+        }
+        if (pairGroup != null)
+        {
+            fullHouse.AddRange(pairGroup);
+        }
+        return fullHouse;
     }
 
     private List<Card> DetermineFlushCards(List<Card> hand)
     {
-        throw new System.NotImplementedException();
+        return hand.OrderByDescending(card => card.HighValue).Take(5).ToList();
     }
 
     private List<Card> DetermineStraightCards(List<Card> hand)
     {
-        throw new System.NotImplementedException();
+        var sortedHand = hand.OrderBy(card => card.HighValue).ToList();
+        if (IsStraight(sortedHand))
+            return sortedHand;
+
+        sortedHand = hand.OrderBy(card => card.Value).ToList(); // Ace as 1
+        if (IsStraight(sortedHand))
+            return sortedHand;
+
+        return new List<Card>();
+    }
+    private bool IsStraight(List<Card> sortedHand)
+    {
+        for (int i = 1; i < sortedHand.Count; i++)
+        {
+            if (sortedHand[i].HighValue != sortedHand[i - 1].HighValue + 1)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private List<Card> DetermineThreeOfAKindCards(List<Card> hand)
     {
-        throw new System.NotImplementedException();
+        var groupedByValue = hand.GroupBy(card => card.Value);
+        var threeOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() == 3);
+        return threeOfAKindGroup?.ToList() ?? new List<Card>();
     }
 
     private List<Card> DetermineTwoPairCards(List<Card> hand)
@@ -122,7 +179,7 @@ public class PokerHandEvaluator
 
     private List<Card> DetermineHighCard(List<Card> hand)
     {
-        return hand.OrderByDescending(card => card.Value).Take(1).ToList();
+        return hand.OrderByDescending(card => card.Value).Take(5).ToList();
     }
 
     private int CalculateRankWeight(HandRank handRank, List<Card> hand)
@@ -194,17 +251,10 @@ public class PokerHandEvaluator
 
     private bool HasFiveOfAKind(List<Card> hand)
     {
-        // Implement logic to check for five of a kind, including wild cards if any
-        // Example: Four cards of the same rank plus a wild card
-        // This will depend on your specific game rules for wild cards
-        // Return true or false accordingly
-        return false;
+        var groupedByValue = hand.GroupBy(card => card.Value);
+        return groupedByValue.Any(group => group.Count() == 5);
     }
 
-    // Implement methods for checking other hand types (Royal Flush, Straight Flush, etc.)
-    // These methods should check if the hand meets the criteria for each hand type
-
-    // Example methods:
     private bool HasRoyalFlush(List<Card> hand)
     {
         // Check for flush
@@ -243,14 +293,12 @@ public class PokerHandEvaluator
 
     private bool HasFourOfAKind(List<Card> hand)
     {
-        var groupedByRank = hand.GroupBy(card => card.Value);
-        return groupedByRank.Any(group => group.Count() == 4);
+        return hand.GroupBy(card => card.Value).Any(group => group.Count() == 4);
     }
     private bool HasFullHouse(List<Card> hand)
     {
         var groupedByRank = hand.GroupBy(card => card.Value);
-        return groupedByRank.Any(group => group.Count() == 3) &&
-               groupedByRank.Any(group => group.Count() == 2);
+        return groupedByRank.Any(group => group.Count() == 3) && groupedByRank.Any(group => group.Count() == 2);
     }
     private bool HasFlush(List<Card> hand)
     {
@@ -274,19 +322,42 @@ public class PokerHandEvaluator
     }
     private bool HasThreeOfAKind(List<Card> hand)
     {
-        var groupedByRank = hand.GroupBy(card => card.Value);
-        return groupedByRank.Any(group => group.Count() == 3);
+        return hand.GroupBy(card => card.Value).Any(group => group.Count() == 3);
     }
     private bool HasTwoPair(List<Card> hand)
     {
-        var groupedByRank = hand.GroupBy(card => card.Value);
-        int pairCount = groupedByRank.Count(group => group.Count() == 2);
-        return pairCount == 2;
+        return hand.GroupBy(card => card.Value).Count(group => group.Count() == 2) == 2;
     }
     private bool HasOnePair(List<Card> hand)
     {
-        var groupedByValue = hand.GroupBy(card => card.Value);
-        return groupedByValue.Any(group => group.Count() == 2);
+        return hand.GroupBy(card => card.Value).Any(group => group.Count() == 2);
+    }
+
+    public int CompareHands(List<Card> hand1, List<Card> hand2)
+    {
+        var result1 = EvaluateHandWeight(hand1);
+        var result2 = EvaluateHandWeight(hand2);
+
+        if (result1.rankWeight > result2.rankWeight)
+        {
+            return 1; // Hand1 wins
+        }
+        else if (result1.rankWeight < result2.rankWeight)
+        {
+            return -1; // Hand2 wins
+        }
+        else
+        {
+            // If both hands have the same rank weight, compare the best cards
+            for (int i = 0; i < result1.bestCards.Count; i++)
+            {
+                if (result1.bestCards[i].Value > result2.bestCards[i].Value)
+                    return 1; // Hand1 wins
+                else if (result1.bestCards[i].Value < result2.bestCards[i].Value)
+                    return -1; // Hand2 wins
+            }
+            return 0; // It's a tie
+        }
     }
 }
 

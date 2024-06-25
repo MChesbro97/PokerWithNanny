@@ -15,6 +15,11 @@ public class Card
         CardSprite = cardSprite;
     }
 
+    public int HighValue
+    {
+        get { return Value == 1 ? 14 : Value; }
+    }
+
     public override string ToString()
     {
         return $"{Value} of {Suit}";

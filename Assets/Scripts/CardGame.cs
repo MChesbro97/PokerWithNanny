@@ -31,7 +31,7 @@ public class CardGame : MonoBehaviour
         deck = new Deck();
         deck.Shuffle();
         Debug.Log("Shuffled Deck:");
-        DisplayDeck();
+        //DisplayDeck();
         Debug.Log("Dealing Cards:");
 
         List<Card> playerHand1 = new List<Card>();
@@ -58,7 +58,19 @@ public class CardGame : MonoBehaviour
         EvaluateHand(playerHand1, "Player 1");
         EvaluateHand(playerHand2, "Player 2");
 
-        CompareHands(playerHand1, playerHand2);
+        int comparisonResult = handEvaluator.CompareHands(playerHand1, playerHand2);
+        if (comparisonResult > 0)
+        {
+            Debug.Log("Player 1 wins!");
+        }
+        else if (comparisonResult < 0)
+        {
+            Debug.Log("Player 2 wins!");
+        }
+        else
+        {
+            Debug.Log("It's a tie");
+        }
     }
     private void DisplayDeck()
     {
@@ -78,86 +90,20 @@ public class CardGame : MonoBehaviour
 
     private void EvaluateHand(List<Card> hand, string playerName)
     {
-        PokerHandEvaluator.HandRank handRank = handEvaluator.EvaluateHand(hand);
-        switch (handRank)
-        {
-            case PokerHandEvaluator.HandRank.OnePair:
-                Debug.Log($"{playerName} has a pair");
-                break;
-            case PokerHandEvaluator.HandRank.TwoPair:
-                Debug.Log($"{playerName} has two pairs");
-                break;
-            case PokerHandEvaluator.HandRank.ThreeOfAKind:
-                Debug.Log($"{playerName} has three of a kind");
-                break;
-            case PokerHandEvaluator.HandRank.Straight:
-                Debug.Log($"{playerName} has a straight");
-                break;
-            case PokerHandEvaluator.HandRank.Flush:
-                Debug.Log($"{playerName} has a flush");
-                break;
-            case PokerHandEvaluator.HandRank.FullHouse:
-                Debug.Log($"{playerName} has a full house");
-                break;
-            case PokerHandEvaluator.HandRank.FourOfAKind:
-                Debug.Log($"{playerName} has four of a kind");
-                break;
-            case PokerHandEvaluator.HandRank.StraightFlush:
-                Debug.Log($"{playerName} has a straight flush");
-                break;
-            case PokerHandEvaluator.HandRank.RoyalFlush:
-                Debug.Log($"{playerName} has a Royal Flush");
-                break;
-            case PokerHandEvaluator.HandRank.FiveOfAKind:
-                Debug.Log($"{playerName} has five of a kind");
-                break;
-            default:
-                Debug.Log($"{playerName} has {handRank}");
-                break;
-        }
+        var result = handEvaluator.EvaluateHandWeight(hand);
+        Debug.Log($"{playerName} has a {result.handRank}");
+        
     }
 
-    private void CompareHands(List<Card> hand1, List<Card> hand2)
-    {
-        var result1 = handEvaluator.EvaluateHandWeight(hand1);
-        var result2 = handEvaluator.EvaluateHandWeight(hand2);
-
-        if (result1.rankWeight > result2.rankWeight)
-        {
-            Debug.Log("Player 1 wins!");
-        }
-        else if (result1.rankWeight < result2.rankWeight)
-        {
-            Debug.Log("Player 2 wins!");
-        }
-        else
-        {
-            int comparisonResult = CompareBestCards(result1.bestCards, result2.bestCards);
-
-            if(comparisonResult > 0)
-            {
-                Debug.Log("Player 1 wins with higher cards");
-            }
-            else if(comparisonResult < 0)
-            {
-                Debug.Log("Player 2 wins with higher cards");
-            }
-            else
-            {
-                Debug.Log("It's a tie");
-            }
-        }
-    }
-
-    private int CompareBestCards(List<Card> bestCards1, List<Card> bestCards2)
-    {
-        for (int i = 0; i < bestCards1.Count; i++)
-        {
-            if (bestCards1[i].Value > bestCards2[i].Value)
-                return 1; // Player 1 wins
-            else if (bestCards1[i].Value < bestCards2[i].Value)
-                return -1; // Player 2 wins
-        }
-        return 0;
-    }
+    //private int CompareBestCards(List<Card> bestCards1, List<Card> bestCards2)
+    //{
+    //    for (int i = 0; i < bestCards1.Count; i++)
+    //    {
+    //        if (bestCards1[i].Value > bestCards2[i].Value)
+    //            return 1; // Player 1 wins
+    //        else if (bestCards1[i].Value < bestCards2[i].Value)
+    //            return -1; // Player 2 wins
+    //    }
+    //    return 0;
+    //}
 }
