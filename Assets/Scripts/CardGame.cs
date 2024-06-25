@@ -56,7 +56,7 @@ public class CardGame : MonoBehaviour
         Debug.Log($"Cards remaining in the deck: {deck.CardsRemaining()}");
 
         EvaluateHand(playerHand1, "Player 1");
-        EvaluateHand(playerHand1, "Player 2");
+        EvaluateHand(playerHand2, "Player 2");
     }
     private void DisplayDeck()
     {
