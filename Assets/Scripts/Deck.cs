@@ -1,0 +1,66 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Deck
+{
+    public List<Card> cards;
+    private static readonly string[] Suits = { "Club", "Diamond", "Heart", "Spade" };
+    private static readonly string[] Values =
+    {
+        "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13"
+    };
+
+    public Deck()
+    {
+        InitializeDeck();
+    }
+
+    private void InitializeDeck()
+    {
+        cards = new List<Card>();
+        foreach (string suit in Suits)
+        {
+            foreach (string value in Values)
+            {
+                Sprite cardSprite = LoadCardSprite(value, suit);
+                cards.Add(new Card(suit, value, cardSprite));
+            }
+        }
+    }
+
+    private Sprite LoadCardSprite(string value, string suit)
+    {
+        string path = $"PlayingCards/{suit}{value}";
+        return Resources.Load<Sprite>(path);
+    }
+
+    public void Shuffle()
+    {
+        System.Random rng = new System.Random();
+        int n = cards.Count;
+        while (n > 1)
+        {
+            n--;
+            int k = rng.Next(n + 1);
+            Card value = cards[k];
+            cards[k] = cards[n];
+            cards[n] = value;
+        }
+    }
+
+    public Card Deal()
+    {
+        if (cards.Count == 0)
+            throw new InvalidOperationException("No cards left in the deck");
+
+        Card cardToDeal = cards[0];
+        cards.RemoveAt(0);
+        return cardToDeal;
+    }
+
+    public int CardsRemaining()
+    {
+        return cards.Count;
+    }
+}
