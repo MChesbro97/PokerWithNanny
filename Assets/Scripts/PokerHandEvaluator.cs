@@ -19,6 +19,58 @@ public class PokerHandEvaluator
         RoyalFlush,
         FiveOfAKind  // Added for games with wild cards
     }
+    public struct HandEvaluationResult
+    {
+        public HandRank handRank;
+        public int rankWeight;
+        public List<Card> bestCards;
+    }
+
+    public HandEvaluationResult EvaluateHandWeight(List<Card> hand)
+    {
+        HandRank handRank = EvaluateHand(hand);
+        int rankWeight = CalculateRankWeight(handRank, hand);
+        List<Card> bestCards = DetermineBestCards(hand, handRank);
+        return new HandEvaluationResult { handRank = handRank, rankWeight = rankWeight, bestCards = bestCards };
+    }
+
+    private List<Card> DetermineBestCards(List<Card> hand, HandRank handRank)
+    {
+
+        return new List<Card>;
+    }
+
+    private int CalculateRankWeight(HandRank handRank, List<Card> hand)
+    {
+        // Assign weights or ranks based on hand rank
+        switch (handRank)
+        {
+            case HandRank.HighCard:
+                return 1;
+            case HandRank.OnePair:
+                return 2;
+            case HandRank.TwoPair:
+                return 3;
+            case HandRank.ThreeOfAKind:
+                return 4;
+            case HandRank.Straight:
+                return 5;
+            case HandRank.Flush:
+                return 6;
+            case HandRank.FullHouse:
+                return 7;
+            case HandRank.FourOfAKind:
+                return 8;
+            case HandRank.StraightFlush:
+                return 9;
+            case HandRank.RoyalFlush:
+                return 10;
+            case HandRank.FiveOfAKind:
+                return 11;
+            default:
+                return 0; // Default should not be reached if all cases are covered
+        }
+    }
 
     public HandRank EvaluateHand(List<Card> hand)
     {
@@ -70,14 +122,38 @@ public class PokerHandEvaluator
     // Example methods:
     private bool HasRoyalFlush(List<Card> hand)
     {
-        // Check if the hand has A, K, Q, J, 10 of the same suit
-        return false;
+        // Check for flush
+        if (!HasFlush(hand))
+        {
+            return false;
+        }
+        // Sort hand by rank
+        hand.Sort((a, b) => a.Value.CompareTo(b.Value));
+
+        // Check for Royal Flush (A, K, Q, J, 10 in the same suit)
+        return hand[0].Value == "01" &&    // Ace
+               hand[1].Value == "10" &&   // 10
+               hand[2].Value == "11" &&   // Jack (J)
+               hand[3].Value == "12" &&   // Queen (Q)
+               hand[4].Value == "13";     //King (K)
+
     }
 
     private bool HasStraightFlush(List<Card> hand)
     {
-        // Check if the hand has five consecutive cards of the same suit
-        return false;
+        // Check for flush
+        if (!HasFlush(hand))
+        {
+            return false;
+        }
+
+        // Check for straight
+        if (!HasStraight(hand))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private bool HasFourOfAKind(List<Card> hand)
@@ -97,8 +173,19 @@ public class PokerHandEvaluator
     }
     private bool HasStraight(List<Card> hand)
     {
+        // Sort hand by rank
+        hand.Sort((a, b) => a.Value.CompareTo(b.Value));
 
-        return false;
+        // Check for straight
+        for (int i = 0; i < hand.Count - 1; i++)
+        {
+            if (hand[i + 1].Value != hand[i].Value + 1)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
     private bool HasThreeOfAKind(List<Card> hand)
     {
