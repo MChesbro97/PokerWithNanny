@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
-public class PokerHandEvaluator
+public class PokerHandEvaluator : MonoBehaviour
 {
     public enum HandRank
     {
@@ -166,15 +166,25 @@ public class PokerHandEvaluator
     private List<Card> DetermineTwoPairCards(List<Card> hand)
     {
         var groupedByValue = hand.GroupBy(card => card.Value);
-        var pairs = groupedByValue.Where(group => group.Count() == 2).Take(2);
-        return pairs.SelectMany(pair => pair).ToList();
+        var pairs = groupedByValue.Where(group => group.Count() == 2).OrderByDescending(group => group.Key).Take(2);
+        if (pairs.Count() == 2)
+        {
+            var remainingCard = hand.Except(pairs.SelectMany(pair => pair)).OrderByDescending(card => card.HighValue).FirstOrDefault();
+            return pairs.SelectMany(pair => pair).Concat(new[] { remainingCard }).ToList();
+        }
+        return new List<Card>();
     }
 
     private List<Card> DeterminePairCards(List<Card> hand)
     {
         var groupedByValue = hand.GroupBy(card => card.Value);
         var pairGroup = groupedByValue.FirstOrDefault(group => group.Count() == 2);
-        return pairGroup?.ToList() ?? new List<Card>();
+        if (pairGroup != null)
+        {
+            var remainingCards = hand.Except(pairGroup).OrderByDescending(card => card.HighValue).Take(3);
+            return pairGroup.Concat(remainingCards).ToList();
+        }
+        return new List<Card>();
     }
 
     private List<Card> DetermineHighCard(List<Card> hand)
@@ -348,16 +358,35 @@ public class PokerHandEvaluator
         }
         else
         {
-            // If both hands have the same rank weight, compare the best cards
-            for (int i = 0; i < result1.bestCards.Count; i++)
+            int comparisonResult = CompareBestCards(result1.bestCards, result2.bestCards);
+
+            if (comparisonResult > 0)
             {
-                if (result1.bestCards[i].Value > result2.bestCards[i].Value)
-                    return 1; // Hand1 wins
-                else if (result1.bestCards[i].Value < result2.bestCards[i].Value)
-                    return -1; // Hand2 wins
+                Debug.Log("Player 1 wins with higher cards");
+                return 1;
             }
-            return 0; // It's a tie
+            else if (comparisonResult < 0)
+            {
+                Debug.Log("Player 2 wins with higher cards");
+                return -1;
+            }
+            else
+            {
+                Debug.Log("It's a tie");
+                return 0;
+            }
         }
+    }
+    private int CompareBestCards(List<Card> bestCards1, List<Card> bestCards2)
+    {
+        for (int i = 0; i < bestCards1.Count; i++)
+        {
+            if (bestCards1[i].HighValue > bestCards2[i].HighValue)
+                return 1; // Player 1 wins
+            else if (bestCards1[i].HighValue < bestCards2[i].HighValue)
+                return -1; // Player 2 wins
+        }
+        return 0;
     }
 }
 
