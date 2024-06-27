@@ -15,12 +15,13 @@ public class Deck
     private void InitializeDeck()
     {
         cards = new List<Card>();
+        Sprite backSprite = LoadCardBackSprite();
         foreach (string suit in Suits)
         {
             for (int value = 2; value <= 14; value++)
             {
                 Sprite cardSprite = LoadCardSprite(value, suit);
-                cards.Add(new Card(suit, value, cardSprite));
+                cards.Add(new Card(suit, value, cardSprite, backSprite));
             }
         }
     }
@@ -28,6 +29,11 @@ public class Deck
     private Sprite LoadCardSprite(int value, string suit)
     {
         string path = $"PlayingCards/{suit}{value}";
+        return Resources.Load<Sprite>(path);
+    }
+    private Sprite LoadCardBackSprite()
+    {
+        string path = "PlayingCards/BackColor_Red";
         return Resources.Load<Sprite>(path);
     }
 
