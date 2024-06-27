@@ -23,7 +23,7 @@ public class CardGame : MonoBehaviour
 
     public void NewGame()
     {
-        //StopAllCoroutines();
+        StopAllCoroutines();
 
         foreach (GameObject card in instantiatedCards)
         {
@@ -121,7 +121,7 @@ public class CardGame : MonoBehaviour
             playerHand1.Add(dealtCard);
             playerHand1Objects.Add(cardObject);
 
-            yield return WaitForPlayerInput();
+            //yield return WaitForPlayerInput();
 
             dealtCard = deck.Deal();
             Debug.Log(dealtCard);
