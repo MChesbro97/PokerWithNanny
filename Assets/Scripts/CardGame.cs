@@ -23,7 +23,7 @@ public class CardGame : MonoBehaviour
 
     public void NewGame()
     {
-        StopAllCoroutines();
+        //StopAllCoroutines();
 
         foreach (GameObject card in instantiatedCards)
         {
@@ -190,6 +190,10 @@ public class CardGame : MonoBehaviour
             yield return null;
         }
         Debug.Log("Player input received.");
+        while (Input.GetKey(KeyCode.Space))
+        {
+            yield return null;
+        }
     }
 
     private void DisplayDeck()
