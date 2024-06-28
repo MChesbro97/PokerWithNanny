@@ -9,12 +9,15 @@ public class Card
     public Sprite CardSprite { get; private set; }
     public Sprite BackSprite { get; private set; }
 
+    public bool IsWild { get; private set; }
+
     public Card(string suit, int value, Sprite cardSprite, Sprite backSprite)
     {
         Suit = suit;
         Value = value;
         CardSprite = cardSprite;
         BackSprite = backSprite;
+        this.IsWild = (value == 3 || value == 9);
     }
 
     public int HighValue
