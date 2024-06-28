@@ -23,6 +23,7 @@ public class CardGame : MonoBehaviour
 
     public void NewGame()
     {
+        Debug.Log("New game started");
         StopAllCoroutines();
 
         foreach (GameObject card in instantiatedCards)
@@ -97,6 +98,7 @@ public class CardGame : MonoBehaviour
         // Deal initial two cards face down
         for (int i = 0; i < 2; i++)
         {
+            Debug.Log("First 2 cards being dealt facedown");
             Card dealtCard = deck.Deal();
             Debug.Log(dealtCard);
             var cardObject = DisplayCard(dealtCard, i, hand1, faceUp: false);
@@ -114,7 +116,7 @@ public class CardGame : MonoBehaviour
         for (int i = 2; i < 6; i++)
         {
             yield return WaitForPlayerInput();
-
+            Debug.Log("Dealing next card to player 1");
             Card dealtCard = deck.Deal();
             Debug.Log(dealtCard);
             var cardObject = DisplayCard(dealtCard, i, hand1, faceUp: true);
@@ -122,7 +124,7 @@ public class CardGame : MonoBehaviour
             playerHand1Objects.Add(cardObject);
 
             //yield return WaitForPlayerInput();
-
+            Debug.Log("Dealing next card to player 2");
             dealtCard = deck.Deal();
             Debug.Log(dealtCard);
             cardObject = DisplayCard(dealtCard, i, hand2, faceUp: true);
