@@ -146,11 +146,24 @@ public class PokerHandEvaluator : MonoBehaviour
     private List<Card> DetermineFiveOfAKindCards(List<Card> hand)
     {
         var groupedByValue = hand.GroupBy(card => card.Value);
-        var fiveOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() == 5);
+        int wildCount = hand.Count(card => card.IsWild);
+        var fiveOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() + wildCount >= 5); // Changed condition to >= 5
 
         if (fiveOfAKindGroup != null)
         {
-            return fiveOfAKindGroup.OrderByDescending(card => card.Value).ToList();
+            // Determine how many wild cards are needed to complete the five of a kind
+            wildCount = 5 - fiveOfAKindGroup.Count();
+            var actualFiveOfAKind = fiveOfAKindGroup.ToList();
+
+            // Add wild cards if necessary
+            if (wildCount > 0)
+            {
+                var wildCards = hand.Where(card => card.IsWild).Take(wildCount);
+                actualFiveOfAKind.AddRange(wildCards);
+            }
+
+            // Sort by value descending
+            return actualFiveOfAKind.OrderByDescending(card => card.Value).ToList();
         }
 
         return new List<Card>();
@@ -189,12 +202,23 @@ public class PokerHandEvaluator : MonoBehaviour
     private List<Card> DetermineFourOfAKindCards(List<Card> hand)
     {
         var groupedByValue = hand.GroupBy(card => card.Value);
-        var fourOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() == 4);
+        int wildCount = hand.Count(card => card.IsWild);
+        var fourOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() + wildCount >= 4); // Changed condition to >= 4
 
         if (fourOfAKindGroup != null)
         {
-            var kicker = hand.Where(card => card.Value != fourOfAKindGroup.Key).OrderByDescending(card => card.Value).FirstOrDefault();
-            return fourOfAKindGroup.Concat(new List<Card> { kicker }).ToList();
+            // Find the kicker(s) for the four of a kind
+            var kickers = hand.Where(card => card.Value != fourOfAKindGroup.Key).OrderByDescending(card => card.Value).Take(1); // Adjusted to take one kicker
+
+            // If there are wild cards in the four of a kind, adjust the kicker accordingly
+            wildCount = hand.Count(card => card.IsWild && card.Value == fourOfAKindGroup.Key);
+            if (wildCount > 0)
+            {
+                // Remove as many wild cards as needed from the kicker list
+                kickers = kickers.Skip(wildCount);
+            }
+
+            return fourOfAKindGroup.Concat(kickers).ToList();
         }
 
         return new List<Card>();
@@ -203,16 +227,26 @@ public class PokerHandEvaluator : MonoBehaviour
     private List<Card> DetermineFullHouseCards(List<Card> hand)
     {
         var groupedByValue = hand.GroupBy(card => card.Value);
-        var threeOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() == 3);
-        var pairGroup = groupedByValue.FirstOrDefault(group => group.Count() == 2);
+        int wildCount = hand.Count(card => card.IsWild);
+        var threeOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() + wildCount >= 3); // Changed condition to >= 3
+        var pairGroup = groupedByValue.FirstOrDefault(group => group.Count() + wildCount >= 2); // Changed condition to >= 2
 
         if (threeOfAKindGroup != null && pairGroup != null)
         {
-            return threeOfAKindGroup.Concat(pairGroup).OrderByDescending(card => card.Value).ToList();
+            // Adjust for wild cards in three of a kind
+            int wildThreeCount = hand.Count(card => card.IsWild && card.Value == threeOfAKindGroup.Key);
+            int wildPairCount = hand.Count(card => card.IsWild && card.Value == pairGroup.Key);
+
+            // Determine the actual cards for three of a kind and pair
+            var actualThreeOfAKind = threeOfAKindGroup.Take(3 - wildThreeCount);
+            var actualPair = pairGroup.Take(2 - wildPairCount);
+
+            // Concatenate and order by value
+            return actualThreeOfAKind.Concat(actualPair).OrderByDescending(card => card.Value).ToList();
         }
 
         return new List<Card>();
-    } 
+    }
 
     private List<Card> DetermineFlushCards(List<Card> hand)
     {
@@ -245,9 +279,37 @@ public class PokerHandEvaluator : MonoBehaviour
 
     private List<Card> DetermineThreeOfAKindCards(List<Card> hand)
     {
+        Debug.Log($"Determining Three of a Kind cards. Hand: [{string.Join(", ", hand.Select(card => card.ToString()))}]");
+
         var groupedByValue = hand.GroupBy(card => card.Value);
-        var threeOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() == 3);
-        return threeOfAKindGroup?.ToList() ?? new List<Card>();
+        int wildCount = hand.Count(card => card.IsWild);
+        var threeOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() + wildCount >= 3); // Adjusted to >= 3
+
+        if (threeOfAKindGroup != null)
+        {
+            Debug.Log($"Found Three of a Kind: [{string.Join(", ", threeOfAKindGroup.Select(card => card.ToString()))}]");
+
+            // Determine how many wild cards are needed to complete the three of a kind
+            wildCount = 3 - threeOfAKindGroup.Count();
+            var actualThreeOfAKind = threeOfAKindGroup.ToList();
+
+            // Add wild cards if necessary
+            if (wildCount > 0)
+            {
+                var wildCards = hand.Where(card => card.IsWild).Take(wildCount);
+                actualThreeOfAKind.AddRange(wildCards);
+                Debug.Log($"Added {wildCount} wild card(s): [{string.Join(", ", wildCards.Select(card => card.ToString()))}]");
+            }
+
+            // Sort by value descending
+            var sortedCards = actualThreeOfAKind.OrderByDescending(card => card.Value).ToList();
+            Debug.Log($"Sorted Three of a Kind cards: [{string.Join(", ", sortedCards.Select(card => card.ToString()))}]");
+
+            return sortedCards;
+        }
+
+        Debug.Log("No Three of a Kind found.");
+        return new List<Card>();
     }
 
     private List<Card> DetermineTwoPairCards(List<Card> hand)
@@ -671,11 +733,16 @@ public class PokerHandEvaluator : MonoBehaviour
     }
     private int CompareBestCards(List<Card> bestCards1, List<Card> bestCards2)
     {
+        Debug.Log("Comparing best cards not in for loop");
+        Debug.Log($"Comparing best cards: bestCards1 count = {bestCards1.Count}, bestCards2 count = {bestCards2.Count}");
         for (int i = 0; i < bestCards1.Count; i++)
         {
-            if (bestCards1[i].HighValue > bestCards2[i].HighValue)
+            Debug.Log($"Comparing best cards in for loop: i = {i}");
+            Debug.Log($"bestCards1[{i}] = {bestCards1[i].ToString()}");
+            Debug.Log($"bestCards2[{i}] = {bestCards2[i].ToString()}");
+            if (bestCards1[i].Value > bestCards2[i].Value)
                 return 1; // Player 1 wins
-            else if (bestCards1[i].HighValue < bestCards2[i].HighValue)
+            else if (bestCards1[i].Value < bestCards2[i].Value)
                 return -1; // Player 2 wins
         }
         return 0;
