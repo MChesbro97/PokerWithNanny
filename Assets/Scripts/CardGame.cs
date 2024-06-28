@@ -38,6 +38,7 @@ public class CardGame : MonoBehaviour
         //DisplayDeck();
         Debug.Log("Dealing Cards:");
 
+
         if (selectedGameMode == PokerGameMode.FiveCardDraw)
         {
             DealFiveCardDraw();
@@ -47,6 +48,7 @@ public class CardGame : MonoBehaviour
             StartCoroutine(DealSevenCardStud());
         }
     }
+
     private void DealFiveCardDraw()
     {
         List<Card> playerHand1 = new List<Card>();
