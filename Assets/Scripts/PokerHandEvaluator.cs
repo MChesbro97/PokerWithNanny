@@ -314,29 +314,60 @@ public class PokerHandEvaluator : MonoBehaviour
 
     private List<Card> DetermineTwoPairCards(List<Card> hand)
     {
-        var groupedByValue = hand.GroupBy(card => card.Value);
-        var pairs = groupedByValue.Where(group => group.Count() == 2).OrderByDescending(group => group.Key).Take(2);
-        if (pairs.Count() == 2)
+        var groupedByValue = hand.GroupBy(card => card.Value).ToList();
+        var wildCards = hand.Where(card => card.IsWild).ToList();
+        var nonWildCards = hand.Where(card => !card.IsWild).ToList();
+        List<IGrouping<int, Card>> pairs = groupedByValue.Where(group => group.Count() == 2).OrderByDescending(group => group.Key).ToList();
+
+        // Check if there are two natural pairs
+        if (pairs.Count >= 2)
         {
             var remainingCard = hand.Except(pairs.SelectMany(pair => pair)).OrderByDescending(card => card.HighValue).FirstOrDefault();
-            return pairs.SelectMany(pair => pair).Concat(new[] { remainingCard }).ToList();
+            return pairs.Take(2).SelectMany(pair => pair).Concat(new[] { remainingCard }).ToList();
         }
-        return new List<Card>();
+
+        // Handle cases where wild cards are used
+        List<Card> bestCards = new List<Card>();
+        foreach (var group in groupedByValue)
+        {
+            if (group.Count() == 1 && wildCards.Count > 0)
+            {
+                pairs.Add(group.Concat(wildCards.Take(1)).ToList().GroupBy(card => card.Value).First());
+                wildCards.RemoveAt(0); // Remove one wild card
+            }
+        }
+        return bestCards.Count == 5 ? bestCards : new List<Card>();
     }
 
     private List<Card> DeterminePairCards(List<Card> hand)
     {
-        var groupedByValue = hand.GroupBy(card => card.Value);
-        var pairGroup = groupedByValue.FirstOrDefault(group => group.Count() == 2);
-        if (pairGroup != null)
+        var groupedByValue = hand.GroupBy(card => card.Value).ToList();
+        var wildCards = hand.Where(card => card.IsWild).ToList();
+        var pairs = groupedByValue.Where(group => group.Count() == 2).OrderByDescending(group => group.Key).ToList();
+
+        // Check for natural pair
+        if (pairs.Count > 0)
         {
-            var remainingCards = hand.Except(pairGroup).OrderByDescending(card => card.HighValue).Take(3);
-            return pairGroup.Concat(remainingCards).ToList();
+            var topPair = pairs.First();
+            var remainingCards = hand.Except(topPair).OrderByDescending(card => card.HighValue).Take(3);
+            var bestCards = topPair.Concat(remainingCards).ToList();
+            return bestCards.Count == 5 ? bestCards : new List<Card>();
         }
+
+        // Handle cases where wild cards are used
+        var singleCards = groupedByValue.Where(group => group.Count() == 1).OrderByDescending(group => group.Key).ToList();
+        if (singleCards.Count > 0 && wildCards.Count > 0)
+        {
+            var topSingle = singleCards.First().Concat(wildCards.Take(1)).ToList();
+            var remainingCards = hand.Except(topSingle).OrderByDescending(card => card.HighValue).Take(3);
+            var bestCards = topSingle.Concat(remainingCards).ToList();
+            return bestCards.Count == 5 ? bestCards : new List<Card>();
+        }
+
         return new List<Card>();
     }
 
-    private List<Card> DetermineHighCard(List<Card> hand)
+        private List<Card> DetermineHighCard(List<Card> hand)
     {
         return hand.OrderByDescending(card => card.Value).Take(5).ToList();
     }
@@ -422,41 +453,39 @@ public class PokerHandEvaluator : MonoBehaviour
         var sortedHand = hand.OrderBy(card => card.Value).ToList();
         int wildCount = hand.Count(card => card.IsWild);
 
-        // Check for flush first
-        if (!HasFlush(sortedHand))
+        // Group by suit to check for flush
+        var suits = sortedHand.GroupBy(card => card.Suit);
+
+        foreach (var suitGroup in suits)
         {
-            return false;
-        }
-
-        // Royal Flush values: 1 (Ace), 10, 11 (Jack), 12 (Queen), 13 (King)
-        List<int> requiredValues = new List<int> { 1, 10, 11, 12, 13 };
-
-        // Count wild cards used in the flush
-        int wildsUsedInFlush = 0;
-
-        // Track actual values in the flush
-        List<int> actualValues = new List<int>();
-
-        foreach (var card in sortedHand)
-        {
-            if (!card.IsWild)
+            // Ensure we have at least one non-wild card in the suit group
+            if (suitGroup.Count(card => !card.IsWild) > 0)
             {
-                actualValues.Add(card.Value);
-            }
-            else
-            {
-                wildsUsedInFlush++;
+                var suitedCards = suitGroup.Where(card => !card.IsWild).OrderBy(card => card.Value).ToList();
+                var wildCards = suitGroup.Where(card => card.IsWild).ToList();
+
+                List<int> requiredValues = new List<int> { 10, 11, 12, 13, 14 };
+                int wildsUsed = 0;
+
+                foreach (var card in suitedCards)
+                {
+                    if (requiredValues.Contains(card.Value))
+                    {
+                        requiredValues.Remove(card.Value);
+                    }
+                }
+
+                wildsUsed = requiredValues.Count;
+                if (wildsUsed <= wildCards.Count)
+                {
+                    return true;
+                }
             }
         }
 
-        // Check if all required royal flush values are present or can be filled with wild cards
-        foreach (var value in actualValues)
-        {
-            requiredValues.Remove(value);
-        }
-
-        return requiredValues.Count <= wildsUsedInFlush;
+        return false;
     }
+
 
 
     private bool HasStraightFlush(List<Card> hand)
@@ -530,6 +559,7 @@ public class PokerHandEvaluator : MonoBehaviour
 
         return false;
     }
+
 
     private bool HasFourOfAKind(List<Card> hand)
     {
