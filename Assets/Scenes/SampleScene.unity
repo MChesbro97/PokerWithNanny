@@ -478,7 +478,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 662c3f0b006248b47ab77b5edab9eeb5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  selectedGameMode: 1
+  selectedGameMode: 5
   cardPrefab: {fileID: 6116422536390323673, guid: d4fce5e1c69ade7438227be0faf96710, type: 3}
   hand1: {fileID: 2094658015}
   hand2: {fileID: 900410680}

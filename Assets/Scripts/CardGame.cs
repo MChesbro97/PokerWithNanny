@@ -52,9 +52,12 @@ public class CardGame : MonoBehaviour
                 break;
 
             case PokerGameMode.DayBaseball:
-                //StartCoroutine(DealSevenCardStud());
-                //break;
             case PokerGameMode.Woolworth:
+            case PokerGameMode.DeucesAndJacks:
+            case PokerGameMode.FollowTheQueen:
+            case PokerGameMode.HighChicago:
+            case PokerGameMode.LowChicago:
+            case PokerGameMode.KingsAndLittleOnes:
                 StartCoroutine(DealSevenCardStud());
                 break;
 
@@ -116,17 +119,8 @@ public class CardGame : MonoBehaviour
         for (int i = 0; i < 2; i++)
         {
             Debug.Log("First 2 cards being dealt facedown");
-            Card dealtCard = deck.Deal();
-            Debug.Log(dealtCard);
-            var cardObject = DisplayCard(dealtCard, i, hand1, faceUp: false);
-            playerHand1.Add(dealtCard);
-            playerHand1Objects.Add(cardObject);
-
-            dealtCard = deck.Deal();
-            Debug.Log(dealtCard);
-            cardObject = DisplayCard(dealtCard, i, hand2, faceUp: false);
-            playerHand2.Add(dealtCard);
-            playerHand2Objects.Add(cardObject);
+            DealAndCheckWild(playerHand1, playerHand1Objects, hand1, i, false);
+            DealAndCheckWild(playerHand2, playerHand2Objects, hand2, i, false);
         }
 
         // Deal next four cards face up with waits for bets
@@ -134,35 +128,19 @@ public class CardGame : MonoBehaviour
         {
             yield return WaitForPlayerInput();
             Debug.Log("Dealing next card to player 1");
-            Card dealtCard = deck.Deal();
-            Debug.Log(dealtCard);
-            var cardObject = DisplayCard(dealtCard, i, hand1, faceUp: true);
-            playerHand1.Add(dealtCard);
-            playerHand1Objects.Add(cardObject);
+            DealAndCheckWild(playerHand1, playerHand1Objects, hand1, i, true);
 
             //yield return WaitForPlayerInput();
             Debug.Log("Dealing next card to player 2");
-            dealtCard = deck.Deal();
-            Debug.Log(dealtCard);
-            cardObject = DisplayCard(dealtCard, i, hand2, faceUp: true);
-            playerHand2.Add(dealtCard);
-            playerHand2Objects.Add(cardObject);
+            DealAndCheckWild(playerHand2, playerHand2Objects, hand2, i, true);
+
         }
 
         // Deal final card face down
         yield return WaitForPlayerInput();
 
-        Card finalCard = deck.Deal();
-        Debug.Log(finalCard);
-        var finalCardObject = DisplayCard(finalCard, 6, hand1, faceUp: false);
-        playerHand1.Add(finalCard);
-        playerHand1Objects.Add(finalCardObject);
-
-        finalCard = deck.Deal();
-        Debug.Log(finalCard);
-        finalCardObject = DisplayCard(finalCard, 6, hand2, faceUp: false);
-        playerHand2.Add(finalCard);
-        playerHand2Objects.Add(finalCardObject);
+        DealAndCheckWild(playerHand1, playerHand1Objects, hand1, 6, false);
+        DealAndCheckWild(playerHand2, playerHand2Objects, hand2, 6, false);
 
         yield return WaitForPlayerInput();
 
@@ -194,6 +172,29 @@ public class CardGame : MonoBehaviour
         //{
         //    Debug.Log("It's a tie");
         //}
+    }
+
+    private void DealAndCheckWild(List<Card> playerHand, List<GameObject> playerHandObjects, GameObject hand, int index, bool faceUp)
+    {
+        Card dealtCard = deck.Deal();
+        Debug.Log(dealtCard);
+        var cardObject = DisplayCard(dealtCard, index, hand, faceUp);
+        playerHand.Add(dealtCard);
+        playerHandObjects.Add(cardObject);
+
+        if (selectedGameMode == PokerGameMode.FollowTheQueen)
+        {
+            if (dealtCard.Value == 12 && faceUp) // Queen is dealt face up
+            {
+                Debug.Log("Queen dealt face up, setting next card as wild");
+                Card.SetFollowTheQueenWildValue(-1); // Reset wild value
+            }
+            else if (Card.GetFollowTheQueenWildValue() == -1) // This card is dealt after a face-up queen
+            {
+                Card.SetFollowTheQueenWildValue(dealtCard.Value);
+                Debug.Log($"New wild card value set to: {dealtCard.Value}");
+            }
+        }
     }
     private void TurnAllCardsFaceUp(List<GameObject> cardObjects)
     {

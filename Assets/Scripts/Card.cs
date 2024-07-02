@@ -12,6 +12,7 @@ public class Card
     public bool IsWild { get; private set; }
 
     private static PokerGameMode currentGameMode;
+    private static int followTheQueenWildValue = -1;
 
     public Card(string suit, int value, Sprite cardSprite, Sprite backSprite)
     {
@@ -34,7 +35,15 @@ public class Card
     public static void SetGameMode(PokerGameMode gameMode)
     {
         currentGameMode = gameMode;
-        //UpdateAllCardsWildStatus();
+        followTheQueenWildValue = -1;
+    }
+    public static void SetFollowTheQueenWildValue(int value)
+    {
+        followTheQueenWildValue = value;
+    }
+    public static int GetFollowTheQueenWildValue()
+    {
+        return followTheQueenWildValue;
     }
     public void SetWildStatus()
     {
@@ -44,10 +53,17 @@ public class Card
                 IsWild = false;
                 break;
             case PokerGameMode.DayBaseball:
+            case PokerGameMode.NightBaseball:
                 IsWild = (Value == 3 || Value == 9);
                 break;
             case PokerGameMode.Woolworth:
                 IsWild = (Value == 5 || Value == 10);
+                break;
+            case PokerGameMode.DeucesAndJacks:
+                IsWild = (Value == 2 || Value == 11 || (Value == 13 && Suit == "Diamond"));
+                break;
+            case PokerGameMode.FollowTheQueen:
+                IsWild = (Value == 12 || Value == followTheQueenWildValue);
                 break;
             default:
                 IsWild = false;

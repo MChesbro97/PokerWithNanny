@@ -6,5 +6,11 @@ public enum PokerGameMode
 {
     FiveCardDraw,
     DayBaseball,
-    Woolworth
+    NightBaseball,
+    FollowTheQueen,
+    Woolworth,
+    DeucesAndJacks,
+    HighChicago,
+    LowChicago,
+    KingsAndLittleOnes
 }
