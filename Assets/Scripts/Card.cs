@@ -11,13 +11,15 @@ public class Card
 
     public bool IsWild { get; private set; }
 
+    private static PokerGameMode currentGameMode;
+
     public Card(string suit, int value, Sprite cardSprite, Sprite backSprite)
     {
         Suit = suit;
         Value = value;
         CardSprite = cardSprite;
         BackSprite = backSprite;
-        this.IsWild = (value == 3 || value == 9);
+        SetWildStatus();
     }
 
     public int HighValue
@@ -29,4 +31,39 @@ public class Card
     {
         return $"{Value} of {Suit}";
     }
+    public static void SetGameMode(PokerGameMode gameMode)
+    {
+        currentGameMode = gameMode;
+        //UpdateAllCardsWildStatus();
+    }
+    public void SetWildStatus()
+    {
+        switch (currentGameMode)
+        {
+            case PokerGameMode.FiveCardDraw:
+                IsWild = false;
+                break;
+            case PokerGameMode.DayBaseball:
+                IsWild = (Value == 3 || Value == 9);
+                break;
+            case PokerGameMode.Woolworth:
+                IsWild = (Value == 5 || Value == 10);
+                break;
+            default:
+                IsWild = false;
+                break;
+        }
+        Debug.Log($"Card {this} wild status: {IsWild}");
+    }
+
+    //public static void UpdateAllCardsWildStatus()
+    //{
+    //    // Assuming all cards are stored somewhere, update their wild status
+    //    // This method should be called after the game mode is set to update existing cards
+    //    var allCards = FindObjectsOfType<Card>(); // Example, adjust based on your implementation
+    //    foreach (var cardComponent in allCards)
+    //    {
+    //        cardComponent.CardData.SetWildStatus();
+    //    }
+    //}
 }

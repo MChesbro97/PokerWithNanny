@@ -10,4 +10,8 @@ public class CardComponent : MonoBehaviour
     {
         CardData = card;
     }
+    public void RefreshWildStatus()
+    {
+        CardData.SetWildStatus();
+    }
 }

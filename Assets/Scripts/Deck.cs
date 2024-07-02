@@ -24,6 +24,7 @@ public class Deck
                 cards.Add(new Card(suit, value, cardSprite, backSprite));
             }
         }
+        UpdateAllCardsWildStatus();
     }
 
     private Sprite LoadCardSprite(int value, string suit)
@@ -64,5 +65,12 @@ public class Deck
     public int CardsRemaining()
     {
         return cards.Count;
+    }
+    public void UpdateAllCardsWildStatus()
+    {
+        foreach (var card in cards)
+        {
+            card.SetWildStatus();
+        }
     }
 }

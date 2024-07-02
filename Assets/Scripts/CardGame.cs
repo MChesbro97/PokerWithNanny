@@ -15,6 +15,7 @@ public class CardGame : MonoBehaviour
     public GameObject hand1;
     public GameObject hand2;
 
+    private int sortingOrder = 0;
     void Start()
     { 
         handEvaluator = new PokerHandEvaluator();
@@ -32,6 +33,9 @@ public class CardGame : MonoBehaviour
             Destroy(card);
         }
         instantiatedCards.Clear();
+        sortingOrder = 0;
+
+        Card.SetGameMode(selectedGameMode);
 
         deck = new Deck();
         deck.Shuffle();
@@ -40,13 +44,23 @@ public class CardGame : MonoBehaviour
         Debug.Log("Dealing Cards:");
 
 
-        if (selectedGameMode == PokerGameMode.FiveCardDraw)
+
+        switch (selectedGameMode)
         {
-            DealFiveCardDraw();
-        }
-        else if (selectedGameMode == PokerGameMode.SevenCardStud)
-        {
-            StartCoroutine(DealSevenCardStud());
+            case PokerGameMode.FiveCardDraw:
+                DealFiveCardDraw();
+                break;
+
+            case PokerGameMode.DayBaseball:
+                //StartCoroutine(DealSevenCardStud());
+                //break;
+            case PokerGameMode.Woolworth:
+                StartCoroutine(DealSevenCardStud());
+                break;
+
+            default:
+                Debug.LogError("Unknown game mode selected!");
+                break;
         }
     }
 
@@ -217,10 +231,11 @@ public class CardGame : MonoBehaviour
     }
     private GameObject DisplayCard(Card card, int index, GameObject hand, bool faceUp = true)
     {
-        Vector3 position = hand.transform.position + new Vector3(index * 2.0f, 0, 0);
+        Vector3 position = hand.transform.position + new Vector3(index * 1.0f, 0, 0);
         GameObject cardObject = Instantiate(cardPrefab, position, Quaternion.identity, hand.transform);
         SpriteRenderer renderer = cardObject.GetComponent<SpriteRenderer>();
         renderer.sprite = faceUp ? card.CardSprite : card.BackSprite;
+        renderer.sortingOrder = sortingOrder++;
         var cardComponent = cardObject.AddComponent<CardComponent>();
         cardComponent.Initialize(card);
         instantiatedCards.Add(cardObject);

@@ -5,5 +5,6 @@ using UnityEngine;
 public enum PokerGameMode
 {
     FiveCardDraw,
-    SevenCardStud
+    DayBaseball,
+    Woolworth
 }
