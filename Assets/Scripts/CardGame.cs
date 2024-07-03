@@ -23,7 +23,7 @@ public class CardGame : MonoBehaviour
     { 
         handEvaluator = new PokerHandEvaluator();
         //selectedGameMode = PokerGameMode.FiveCardDraw;
-        NewGame();
+        //NewGame();
     }
 
     public void NewGame()
@@ -207,7 +207,7 @@ public class CardGame : MonoBehaviour
         bool player1Flipped = false;
         bool player2Flipped = false;
 
-        while (flipIndex1 >= 0 && flipIndex2 >= 0)
+        while (flipIndex1 >= 0 || flipIndex2 >= 0)
         {
             if (playerTurn == 1 && flipIndex1 >= 0)
             {
@@ -250,16 +250,15 @@ public class CardGame : MonoBehaviour
                     Debug.Log("Both players are tied.");
                 }
 
-                // Ensure each player gets another turn if they lose the comparison
-                if (comparisonResult < 0 && playerTurn == 1)
+                if (comparisonResult <= 0 && playerTurn == 1)
                 {
-                    playerTurn = 1; // Switch to Player 2 if Player 1 is losing
+                    playerTurn = 1; 
                 }
                 else if (comparisonResult > 0 && playerTurn == 1)
                 {
-                    playerTurn = 2; // Switch to Player 1 if Player 2 is losing
+                    playerTurn = 2; 
                 }
-                else if (comparisonResult > 0 && playerTurn ==2)
+                else if (comparisonResult >= 0 && playerTurn ==2)
                 {
                     playerTurn = 2;
                 }
