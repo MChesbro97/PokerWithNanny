@@ -145,12 +145,21 @@ public class PokerHandEvaluator : MonoBehaviour
 
     private List<Card> DetermineFiveOfAKindCards(List<Card> hand)
     {
-        var groupedByValue = hand.GroupBy(card => card.Value);
+        Debug.Log($"Determining Five of a Kind cards. Hand: [{string.Join(", ", hand.Select(card => card.ToString()))}]");
+
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value);
         int wildCount = hand.Count(card => card.IsWild);
-        var fiveOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() + wildCount >= 5); // Changed condition to >= 5
+
+        // Find the group with the highest count + wild cards that form five of a kind
+        var fiveOfAKindGroup = groupedByValue
+            .Where(group => group.Count() + wildCount >= 5)
+            .OrderByDescending(group => group.Key)
+            .FirstOrDefault();
 
         if (fiveOfAKindGroup != null)
         {
+            Debug.Log($"Found potential Five of a Kind group: [{string.Join(", ", fiveOfAKindGroup.Select(card => card.ToString()))}]");
+
             // Determine how many wild cards are needed to complete the five of a kind
             wildCount = 5 - fiveOfAKindGroup.Count();
             var actualFiveOfAKind = fiveOfAKindGroup.ToList();
@@ -160,14 +169,24 @@ public class PokerHandEvaluator : MonoBehaviour
             {
                 var wildCards = hand.Where(card => card.IsWild).Take(wildCount);
                 actualFiveOfAKind.AddRange(wildCards);
+                Debug.Log($"Added {wildCount} wild card(s): [{string.Join(", ", wildCards.Select(card => card.ToString()))}]");
             }
 
-            // Sort by value descending
-            return actualFiveOfAKind.OrderByDescending(card => card.Value).ToList();
+            // Sort the actualFiveOfAKind by natural cards first, then wild cards
+            actualFiveOfAKind = actualFiveOfAKind
+                .OrderByDescending(card => !card.IsWild)  // Natural cards first
+                .ThenByDescending(card => card.Value)     // Then by value
+                .ToList();
+
+            Debug.Log($"Sorted Five of a Kind cards: [{string.Join(", ", actualFiveOfAKind.Select(card => card.ToString()))}]");
+
+            return actualFiveOfAKind;
         }
 
+        Debug.Log("No Five of a Kind found.");
         return new List<Card>();
     }
+
 
     private List<Card> DetermineRoyalFlushCards(List<Card> hand)
     {
