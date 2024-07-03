@@ -67,6 +67,9 @@ public class CardGame : MonoBehaviour
             case PokerGameMode.KingsAndLittleOnes:
                 StartCoroutine(DealSevenCardStud());
                 break;
+            case PokerGameMode.NightBaseball:
+                StartCoroutine(DealNightBaseball());
+                break;
 
             default:
                 Debug.LogError("Unknown game mode selected!");
@@ -180,6 +183,126 @@ public class CardGame : MonoBehaviour
         //    Debug.Log("It's a tie");
         //}
     }
+    private IEnumerator DealNightBaseball()
+    {
+        List<Card> playerHand1 = new List<Card>();
+        List<Card> playerHand2 = new List<Card>();
+        List<GameObject> playerHand1Objects = new List<GameObject>();
+        List<GameObject> playerHand2Objects = new List<GameObject>();
+
+        // Deal 9 cards facedown to each player
+        for (int i = 0; i < 9; i++)
+        {
+            Debug.Log("Dealing facedown card to Player 1");
+            DealAndCheckWild(playerHand1, playerHand1Objects, hand1, i, false);
+
+            Debug.Log("Dealing facedown card to Player 2");
+            DealAndCheckWild(playerHand2, playerHand2Objects, hand2, i, false);
+        }
+
+        int playerTurn = 1;
+        int flipIndex1 = 8; // Start flipping from the last card dealt to Player 1
+        int flipIndex2 = 8; // Start flipping from the last card dealt to Player 2
+
+        bool player1Flipped = false;
+        bool player2Flipped = false;
+
+        while (flipIndex1 >= 0 && flipIndex2 >= 0)
+        {
+            if (playerTurn == 1 && flipIndex1 >= 0)
+            {
+                yield return WaitForPlayerInput();
+                Debug.Log("Player 1 flips a card");
+                FlipCard(playerHand1Objects, flipIndex1);
+                flipIndex1--;
+                player1Flipped = true;
+                if (!player2Flipped)
+                {
+                    playerTurn = 2;
+                }
+            }
+            else if (playerTurn == 2 && flipIndex2 >= 0)
+            {
+                yield return WaitForPlayerInput();
+                Debug.Log("Player 2 flips a card");
+                FlipCard(playerHand2Objects, flipIndex2);
+                flipIndex2--;
+                player2Flipped = true;
+            }
+
+            if (player1Flipped && player2Flipped)
+            {
+                // Evaluate and compare flipped cards
+                var flippedCards1 = playerHand1Objects.GetRange(flipIndex1 + 1, 9 - (flipIndex1 + 1)).Select(go => go.GetComponent<CardComponent>().CardData).ToList();
+                var flippedCards2 = playerHand2Objects.GetRange(flipIndex2 + 1, 9 - (flipIndex2 + 1)).Select(go => go.GetComponent<CardComponent>().CardData).ToList();
+
+                int comparisonResult = handEvaluator.CompareHands(flippedCards1, flippedCards2);
+                if (comparisonResult > 0)
+                {
+                    Debug.Log("Player 1 is winning currently.");
+                }
+                else if (comparisonResult < 0)
+                {
+                    Debug.Log("Player 2 is winning currently.");
+                }
+                else
+                {
+                    Debug.Log("Both players are tied.");
+                }
+
+                // Ensure each player gets another turn if they lose the comparison
+                if (comparisonResult < 0 && playerTurn == 1)
+                {
+                    playerTurn = 1; // Switch to Player 2 if Player 1 is losing
+                }
+                else if (comparisonResult > 0 && playerTurn == 1)
+                {
+                    playerTurn = 2; // Switch to Player 1 if Player 2 is losing
+                }
+                else if (comparisonResult > 0 && playerTurn ==2)
+                {
+                    playerTurn = 2;
+                }
+                else if (comparisonResult < 0 && playerTurn == 2)
+                {
+                    playerTurn = 1;
+                }
+            }
+            
+        }
+
+        // Final evaluation
+        var finalFlippedCards1 = playerHand1Objects.GetRange(flipIndex1 + 1, 9 - (flipIndex1 + 1)).Select(go => go.GetComponent<CardComponent>().CardData).ToList();
+        var finalFlippedCards2 = playerHand2Objects.GetRange(flipIndex2 + 1, 9 - (flipIndex2 + 1)).Select(go => go.GetComponent<CardComponent>().CardData).ToList();
+
+        int finalComparisonResult = handEvaluator.CompareHands(finalFlippedCards1, finalFlippedCards2);
+        if (finalComparisonResult > 0)
+        {
+            Debug.Log("Player 1 wins the game!");
+        }
+        else if (finalComparisonResult < 0)
+        {
+            Debug.Log("Player 2 wins the game!");
+        }
+        else
+        {
+            Debug.Log("It's a tie!");
+        }
+    }
+
+    private void FlipCard(List<GameObject> handObjects, int index)
+    {
+        if (index >= 0 && index < handObjects.Count)
+        {
+            var cardComponent = handObjects[index].GetComponent<CardComponent>();
+            var renderer = handObjects[index].GetComponent<SpriteRenderer>();
+            if (cardComponent != null && renderer != null)
+            {
+                renderer.sprite = cardComponent.CardData.CardSprite;
+            }
+        }
+    }
+
 
     private void DealAndCheckWild(List<Card> playerHand, List<GameObject> playerHandObjects, GameObject hand, int index, bool faceUp)
     {
