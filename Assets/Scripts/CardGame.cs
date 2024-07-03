@@ -10,6 +10,7 @@ public class CardGame : MonoBehaviour
     private List<GameObject> instantiatedCards = new List<GameObject>();
     private PokerHandEvaluator handEvaluator;
     public PokerGameMode selectedGameMode;
+    public GameModeSelector gameModeSelector;
 
     public GameObject cardPrefab;
     public GameObject hand1;
@@ -38,6 +39,8 @@ public class CardGame : MonoBehaviour
         sortingOrder = 0;
         allDealtCards.Clear();
         queenDealtFaceUp = false;
+
+        selectedGameMode = gameModeSelector.GetSelectedGameMode();
 
         Card.SetGameMode(selectedGameMode);
 

@@ -281,13 +281,18 @@ public class PokerHandEvaluator : MonoBehaviour
     {
         Debug.Log($"Determining Three of a Kind cards. Hand: [{string.Join(", ", hand.Select(card => card.ToString()))}]");
 
-        var groupedByValue = hand.GroupBy(card => card.Value);
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value);
         int wildCount = hand.Count(card => card.IsWild);
-        var threeOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() + wildCount >= 3); // Adjusted to >= 3
+
+        // Find the group with the highest count + wild cards that form three of a kind
+        var threeOfAKindGroup = groupedByValue
+            .Where(group => group.Count() + wildCount >= 3)
+            .OrderByDescending(group => group.Key)
+            .FirstOrDefault();
 
         if (threeOfAKindGroup != null)
         {
-            Debug.Log($"Found Three of a Kind: [{string.Join(", ", threeOfAKindGroup.Select(card => card.ToString()))}]");
+            Debug.Log($"Found potential Three of a Kind group: [{string.Join(", ", threeOfAKindGroup.Select(card => card.ToString()))}]");
 
             // Determine how many wild cards are needed to complete the three of a kind
             wildCount = 3 - threeOfAKindGroup.Count();
@@ -301,11 +306,23 @@ public class PokerHandEvaluator : MonoBehaviour
                 Debug.Log($"Added {wildCount} wild card(s): [{string.Join(", ", wildCards.Select(card => card.ToString()))}]");
             }
 
-            // Sort by value descending
-            var sortedCards = actualThreeOfAKind.OrderByDescending(card => card.Value).ToList();
-            Debug.Log($"Sorted Three of a Kind cards: [{string.Join(", ", sortedCards.Select(card => card.ToString()))}]");
+            // Include the remaining cards in the hand excluding the Three of a Kind cards
+            var remainingCards = hand.Except(actualThreeOfAKind).OrderByDescending(card => card.Value).ToList();
+            Debug.Log($"Remaining cards: [{string.Join(", ", remainingCards.Select(card => card.ToString()))}]");
 
-            return sortedCards;
+            // Sort the actualThreeOfAKind by natural cards first, then wild cards
+            actualThreeOfAKind = actualThreeOfAKind
+                .OrderByDescending(card => !card.IsWild)  // Natural cards first
+                .ThenByDescending(card => card.Value)     // Then by value
+                .ToList();
+
+            Debug.Log($"Sorted Three of a Kind cards: [{string.Join(", ", actualThreeOfAKind.Select(card => card.ToString()))}]");
+
+            // Combine the Three of a Kind with the remaining highest cards
+            var finalHand = actualThreeOfAKind.Concat(remainingCards.Take(2)).ToList();
+            Debug.Log($"Final hand: [{string.Join(", ", finalHand.Select(card => card.ToString()))}]");
+
+            return finalHand;
         }
 
         Debug.Log("No Three of a Kind found.");
