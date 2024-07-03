@@ -16,6 +16,8 @@ public class CardGame : MonoBehaviour
     public GameObject hand2;
 
     private int sortingOrder = 0;
+    private List<Card> allDealtCards = new List<Card>();
+    private bool queenDealtFaceUp = false;
     void Start()
     { 
         handEvaluator = new PokerHandEvaluator();
@@ -34,6 +36,8 @@ public class CardGame : MonoBehaviour
         }
         instantiatedCards.Clear();
         sortingOrder = 0;
+        allDealtCards.Clear();
+        queenDealtFaceUp = false;
 
         Card.SetGameMode(selectedGameMode);
 
@@ -181,19 +185,34 @@ public class CardGame : MonoBehaviour
         var cardObject = DisplayCard(dealtCard, index, hand, faceUp);
         playerHand.Add(dealtCard);
         playerHandObjects.Add(cardObject);
+        allDealtCards.Add(dealtCard);
 
         if (selectedGameMode == PokerGameMode.FollowTheQueen)
         {
             if (dealtCard.Value == 12 && faceUp) // Queen is dealt face up
             {
                 Debug.Log("Queen dealt face up, setting next card as wild");
-                Card.SetFollowTheQueenWildValue(-1); // Reset wild value
+                queenDealtFaceUp = true;
+                Card.SetFollowTheQueenWildValue(-1);
+                UpdateAllCardsWildStatus();// Reset wild value
             }
-            else if (Card.GetFollowTheQueenWildValue() == -1) // This card is dealt after a face-up queen
+            else if (queenDealtFaceUp && Card.GetFollowTheQueenWildValue() == -1 && faceUp) // This card is dealt after a face-up queen
             {
                 Card.SetFollowTheQueenWildValue(dealtCard.Value);
                 Debug.Log($"New wild card value set to: {dealtCard.Value}");
+                UpdateAllCardsWildStatus();
+                queenDealtFaceUp=false;
             }
+        }
+    }
+
+    private void UpdateAllCardsWildStatus()
+    {
+        deck.UpdateAllCardsWildStatus(); // Update undealt cards
+
+        foreach (var card in allDealtCards)
+        {
+            card.SetWildStatus(); // Update dealt cards
         }
     }
     private void TurnAllCardsFaceUp(List<GameObject> cardObjects)
