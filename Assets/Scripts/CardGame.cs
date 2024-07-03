@@ -22,8 +22,6 @@ public class CardGame : MonoBehaviour
     void Start()
     { 
         handEvaluator = new PokerHandEvaluator();
-        //selectedGameMode = PokerGameMode.FiveCardDraw;
-        //NewGame();
     }
 
     public void NewGame()
@@ -81,21 +79,17 @@ public class CardGame : MonoBehaviour
     {
         List<Card> playerHand1 = new List<Card>();
         List<Card> playerHand2 = new List<Card>();
+        List<GameObject> playerHand1Objects = new List<GameObject>();
+        List<GameObject> playerHand2Objects = new List<GameObject>();
 
         for (int i = 0; i < 5; i++)
         {
-            Card dealtCard = deck.Deal();
-            Debug.Log(dealtCard);
-            DisplayCard(dealtCard, i, hand1);
-            playerHand1.Add(dealtCard);
+            DealAndCheckWild(playerHand1, playerHand1Objects, hand1, true);
         }
 
         for (int i = 0; i < 5; i++)
         {
-            Card dealtCard = deck.Deal();
-            Debug.Log(dealtCard);
-            DisplayCard(dealtCard, i, hand2);
-            playerHand2.Add(dealtCard);
+            DealAndCheckWild(playerHand2, playerHand2Objects, hand2, true);
         }
 
         Debug.Log($"Cards remaining in the deck: {deck.CardsRemaining()}");
@@ -129,8 +123,8 @@ public class CardGame : MonoBehaviour
         for (int i = 0; i < 2; i++)
         {
             Debug.Log("First 2 cards being dealt facedown");
-            DealAndCheckWild(playerHand1, playerHand1Objects, hand1, i, false);
-            DealAndCheckWild(playerHand2, playerHand2Objects, hand2, i, false);
+            DealAndCheckForExtra(playerHand1, playerHand1Objects, hand1, false);
+            DealAndCheckForExtra(playerHand2, playerHand2Objects, hand2, false);
         }
 
         // Deal next four cards face up with waits for bets
@@ -138,19 +132,19 @@ public class CardGame : MonoBehaviour
         {
             yield return WaitForPlayerInput();
             Debug.Log("Dealing next card to player 1");
-            DealAndCheckWild(playerHand1, playerHand1Objects, hand1, i, true);
+            DealAndCheckForExtra(playerHand1, playerHand1Objects, hand1, true);
 
             //yield return WaitForPlayerInput();
             Debug.Log("Dealing next card to player 2");
-            DealAndCheckWild(playerHand2, playerHand2Objects, hand2, i, true);
+            DealAndCheckForExtra(playerHand2, playerHand2Objects, hand2, true);
 
         }
 
         // Deal final card face down
         yield return WaitForPlayerInput();
 
-        DealAndCheckWild(playerHand1, playerHand1Objects, hand1, 6, false);
-        DealAndCheckWild(playerHand2, playerHand2Objects, hand2, 6, false);
+        DealAndCheckForExtra(playerHand1, playerHand1Objects, hand1, false);
+        DealAndCheckForExtra(playerHand2, playerHand2Objects, hand2, false);
 
         yield return WaitForPlayerInput();
 
@@ -183,6 +177,19 @@ public class CardGame : MonoBehaviour
         //    Debug.Log("It's a tie");
         //}
     }
+    public void DealAndCheckForExtra(List<Card> playerHand, List<GameObject> playerHandObjects, GameObject hand, bool faceUp)
+    {
+        DealAndCheckWild(playerHand, playerHandObjects, hand, faceUp);
+        if (selectedGameMode == PokerGameMode.DayBaseball)
+        {
+            var lastDealtCard = playerHand.Last();
+            if (lastDealtCard.Value == 4)
+            {
+                Debug.Log("Dealt a 4, giving an extra card.");
+                DealAndCheckForExtra(playerHand, playerHandObjects, hand, faceUp);
+            }
+        }
+    }
     private IEnumerator DealNightBaseball()
     {
         List<Card> playerHand1 = new List<Card>();
@@ -194,10 +201,10 @@ public class CardGame : MonoBehaviour
         for (int i = 0; i < 9; i++)
         {
             Debug.Log("Dealing facedown card to Player 1");
-            DealAndCheckWild(playerHand1, playerHand1Objects, hand1, i, false);
+            DealAndCheckForExtra(playerHand1, playerHand1Objects, hand1, false);
 
             Debug.Log("Dealing facedown card to Player 2");
-            DealAndCheckWild(playerHand2, playerHand2Objects, hand2, i, false);
+            DealAndCheckForExtra(playerHand2, playerHand2Objects, hand2, false);
         }
 
         int playerTurn = 1;
@@ -207,13 +214,23 @@ public class CardGame : MonoBehaviour
         bool player1Flipped = false;
         bool player2Flipped = false;
 
-        while (flipIndex1 >= 0 || flipIndex2 >= 0)
+        while (flipIndex1 >= 0 && flipIndex2 >= 0)
         {
             if (playerTurn == 1 && flipIndex1 >= 0)
             {
                 yield return WaitForPlayerInput();
                 Debug.Log("Player 1 flips a card");
                 FlipCard(playerHand1Objects, flipIndex1);
+
+                var flippedCard = playerHand1Objects[flipIndex1].GetComponent<CardComponent>().CardData;
+
+                if (flippedCard.Value == 4)
+                {
+                    Debug.Log("Player 1 flipped a 4, dealing an extra card.");
+                    DealAndCheckForExtra(playerHand1, playerHand1Objects, hand1, true);
+                    //flipIndex1++;
+                }
+
                 flipIndex1--;
                 player1Flipped = true;
                 if (!player2Flipped)
@@ -226,6 +243,16 @@ public class CardGame : MonoBehaviour
                 yield return WaitForPlayerInput();
                 Debug.Log("Player 2 flips a card");
                 FlipCard(playerHand2Objects, flipIndex2);
+
+                var flippedCard = playerHand2Objects[flipIndex2].GetComponent<CardComponent>().CardData;
+
+                if (flippedCard.Value == 4)
+                {
+                    Debug.Log("Player 2 flipped a 4, dealing an extra card.");
+                    DealAndCheckForExtra(playerHand2, playerHand2Objects, hand2, true);
+                    //flipIndex2++;
+                }
+
                 flipIndex2--;
                 player2Flipped = true;
             }
@@ -233,8 +260,8 @@ public class CardGame : MonoBehaviour
             if (player1Flipped && player2Flipped)
             {
                 // Evaluate and compare flipped cards
-                var flippedCards1 = playerHand1Objects.GetRange(flipIndex1 + 1, 9 - (flipIndex1 + 1)).Select(go => go.GetComponent<CardComponent>().CardData).ToList();
-                var flippedCards2 = playerHand2Objects.GetRange(flipIndex2 + 1, 9 - (flipIndex2 + 1)).Select(go => go.GetComponent<CardComponent>().CardData).ToList();
+                var flippedCards1 = playerHand1Objects.GetRange(flipIndex1 + 1, playerHand1Objects.Count - (flipIndex1 + 1)).Select(go => go.GetComponent<CardComponent>().CardData).ToList();
+                var flippedCards2 = playerHand2Objects.GetRange(flipIndex2 + 1, playerHand2Objects.Count - (flipIndex2 + 1)).Select(go => go.GetComponent<CardComponent>().CardData).ToList();
 
                 int comparisonResult = handEvaluator.CompareHands(flippedCards1, flippedCards2);
                 if (comparisonResult > 0)
@@ -271,8 +298,8 @@ public class CardGame : MonoBehaviour
         }
 
         // Final evaluation
-        var finalFlippedCards1 = playerHand1Objects.GetRange(flipIndex1 + 1, 9 - (flipIndex1 + 1)).Select(go => go.GetComponent<CardComponent>().CardData).ToList();
-        var finalFlippedCards2 = playerHand2Objects.GetRange(flipIndex2 + 1, 9 - (flipIndex2 + 1)).Select(go => go.GetComponent<CardComponent>().CardData).ToList();
+        var finalFlippedCards1 = playerHand1Objects.GetRange(flipIndex1 + 1, playerHand1Objects.Count - (flipIndex1 + 1)).Select(go => go.GetComponent<CardComponent>().CardData).ToList();
+        var finalFlippedCards2 = playerHand2Objects.GetRange(flipIndex2 + 1, playerHand2Objects.Count - (flipIndex2 + 1)).Select(go => go.GetComponent<CardComponent>().CardData).ToList();
 
         int finalComparisonResult = handEvaluator.CompareHands(finalFlippedCards1, finalFlippedCards2);
         if (finalComparisonResult > 0)
@@ -303,11 +330,11 @@ public class CardGame : MonoBehaviour
     }
 
 
-    private void DealAndCheckWild(List<Card> playerHand, List<GameObject> playerHandObjects, GameObject hand, int index, bool faceUp)
+    private void DealAndCheckWild(List<Card> playerHand, List<GameObject> playerHandObjects, GameObject hand, bool faceUp)
     {
         Card dealtCard = deck.Deal();
         Debug.Log(dealtCard);
-        var cardObject = DisplayCard(dealtCard, index, hand, faceUp);
+        var cardObject = DisplayCard(dealtCard, playerHandObjects, hand, faceUp);
         playerHand.Add(dealtCard);
         playerHandObjects.Add(cardObject);
         allDealtCards.Add(dealtCard);
@@ -374,8 +401,9 @@ public class CardGame : MonoBehaviour
             Debug.Log(card);
         }
     }
-    private GameObject DisplayCard(Card card, int index, GameObject hand, bool faceUp = true)
+    private GameObject DisplayCard(Card card, List<GameObject> handObjects, GameObject hand, bool faceUp = true)
     {
+        int index = handObjects.Count;
         Vector3 position = hand.transform.position + new Vector3(index * 1.0f, 0, 0);
         GameObject cardObject = Instantiate(cardPrefab, position, Quaternion.identity, hand.transform);
         SpriteRenderer renderer = cardObject.GetComponent<SpriteRenderer>();
@@ -386,6 +414,7 @@ public class CardGame : MonoBehaviour
         instantiatedCards.Add(cardObject);
         return cardObject;
     }
+
 
     private void EvaluateHand(List<Card> hand, string playerName)
     {
