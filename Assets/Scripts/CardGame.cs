@@ -21,7 +21,7 @@ public class CardGame : MonoBehaviour
     private bool queenDealtFaceUp = false;
     void Start()
     { 
-        handEvaluator = new PokerHandEvaluator();
+        handEvaluator = GetComponent<PokerHandEvaluator>();
     }
 
     public void NewGame()

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,9 +9,9 @@ public class BettingUI : MonoBehaviour
     public Button callButton;
     public Button raiseButton;
     public Slider raiseSlider;
-    public Text totalPotText;
-    public Text currentBetText;
-    public Text playerChipsText;
+    public TextMeshProUGUI totalPotText;
+    public TextMeshProUGUI currentBetText;
+    public TextMeshProUGUI playerChipsText;
 
     private BetManager betManager;
     private Player currentPlayer;
