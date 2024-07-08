@@ -37,19 +37,19 @@ public class BettingUI : MonoBehaviour
         UpdateUI();
     }
 
-    void OnFoldButtonClick()
+    public void OnFoldButtonClick()
     {
         betManager.PlayerFold();
         UpdateUI();
     }
 
-    void OnCallButtonClick()
+    public void OnCallButtonClick()
     {
         betManager.PlayerCall();
         UpdateUI();
     }
 
-    void OnRaiseButtonClick()
+    public void OnRaiseButtonClick()
     {
         int raiseAmount = (int)raiseSlider.value;
         betManager.PlayerRaise(raiseAmount);

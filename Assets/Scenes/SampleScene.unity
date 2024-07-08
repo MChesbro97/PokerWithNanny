@@ -768,7 +768,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 0, y: 0, z: 32.574097, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -1408,7 +1408,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 561364496}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1978899401}
+        m_TargetAssemblyTypeName: BettingUI, Assembly-CSharp
+        m_MethodName: OnFoldButtonClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &561364496
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2105,7 +2117,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1370682962}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1978899401}
+        m_TargetAssemblyTypeName: BettingUI, Assembly-CSharp
+        m_MethodName: OnCallButtonClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1370682962
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2557,7 +2581,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 0, y: 0, z: 34.900757, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -2813,7 +2837,19 @@ MonoBehaviour:
   m_Value: 0
   m_OnValueChanged:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &1633080036
 GameObject:
   m_ObjectHideFlags: 0
@@ -3434,7 +3470,7 @@ MonoBehaviour:
   foldButton: {fileID: 561364495}
   callButton: {fileID: 1370682961}
   raiseButton: {fileID: 2014048190}
-  raiseSlider: {fileID: 0}
+  raiseSlider: {fileID: 1596167312}
   totalPotText: {fileID: 1633080037}
   currentBetText: {fileID: 183559860}
   playerChipsText: {fileID: 1544489822}
@@ -3500,7 +3536,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2014048191}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1978899401}
+        m_TargetAssemblyTypeName: BettingUI, Assembly-CSharp
+        m_MethodName: OnRaiseButtonClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &2014048191
 MonoBehaviour:
   m_ObjectHideFlags: 0
