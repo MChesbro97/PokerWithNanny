@@ -3,8 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
+
 public class PokerHandEvaluator : MonoBehaviour
 {
+    public PokerGameMode currentGameMode;
+    public void SetGameMode(PokerGameMode gameMode)
+    {
+        currentGameMode = gameMode;
+    }
     public enum HandRank
     {
         HighCard,
@@ -33,7 +39,83 @@ public class PokerHandEvaluator : MonoBehaviour
         List<Card> bestCards = DetermineBestCards(hand, handRank);
         return new HandEvaluationResult { handRank = handRank, rankWeight = rankWeight, bestCards = bestCards };
     }
+    private HandEvaluationResult EvaluateHandWithWilds(List<Card> hand)
+    {
+        // Handle wild cards
+        List<Card> nonWildCards = hand.Where(card => !card.IsWild).ToList();
+        int wildCount = hand.Count(card => card.IsWild);
 
+        if (wildCount == 0)
+        {
+            return new HandEvaluationResult
+            {
+                handRank = EvaluateHand(nonWildCards),
+                bestCards = nonWildCards
+            };
+        }
+
+        List<Card> bestHand = null;
+        HandRank bestRank = HandRank.HighCard;
+        foreach (var wildHand in GenerateWildCardCombinations(nonWildCards, wildCount))
+        {
+            HandRank rank = EvaluateHand(wildHand);
+            if (rank > bestRank || (rank == bestRank && CompareBestCards(wildHand, bestHand) > 0))
+            {
+                bestRank = rank;
+                bestHand = wildHand;
+            }
+        }
+
+        return new HandEvaluationResult { handRank = bestRank, bestCards = bestHand };
+    }
+
+    private IEnumerable<List<Card>> GenerateWildCardCombinations(List<Card> nonWildCards, int wildCount)
+    {
+        // Generate all possible combinations of hands with wild cards replacing any other card
+        // For simplicity, only consider replacements that could form valid hands
+
+        // Example implementation, could be improved
+        List<Card> allPossibleCards = GetAllPossibleCards();
+        foreach (var combination in Combinations(allPossibleCards, wildCount))
+        {
+            List<Card> handWithWilds = new List<Card>(nonWildCards);
+            handWithWilds.AddRange(combination);
+            yield return handWithWilds;
+        }
+    }
+    private List<Card> GetAllPossibleCards()
+    {
+        // Generate all possible cards in a deck (excluding jokers)
+        var suits = new[] { "Hearts", "Diamonds", "Clubs", "Spades" };
+        var possibleCards = new List<Card>();
+        foreach (var suit in suits)
+        {
+            for (int value = 1; value <= 13; value++)
+            {
+                possibleCards.Add(new Card(suit, value, null, null));
+            }
+        }
+        return possibleCards;
+    }
+    private IEnumerable<IEnumerable<T>> Combinations<T>(IEnumerable<T> elements, int k)
+    {
+        if (k == 0)
+        {
+            yield return Enumerable.Empty<T>();
+        }
+        else
+        {
+            int i = 0;
+            foreach (var element in elements)
+            {
+                foreach (var combination in Combinations(elements.Skip(i + 1), k - 1))
+                {
+                    yield return new[] { element }.Concat(combination);
+                }
+                i++;
+            }
+        }
+    }
     private List<Card> DetermineBestCards(List<Card> hand, HandRank handRank)
     {
 
@@ -54,7 +136,7 @@ public class PokerHandEvaluator : MonoBehaviour
             case HandRank.FullHouse:
                 return DetermineFullHouseCards(hand);
             case HandRank.FourOfAKind:
-                return DetermineFourOfAkindCards(hand);
+                return DetermineFourOfAKindCards(hand);
             case HandRank.StraightFlush:
                 return DetermineStraightFlushCards(hand);
             case HandRank.RoyalFlush:
@@ -68,10 +150,48 @@ public class PokerHandEvaluator : MonoBehaviour
 
     private List<Card> DetermineFiveOfAKindCards(List<Card> hand)
     {
-        var groupedByValue = hand.GroupBy(card => card.Value);
-        var fiveOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() == 5);
-        return fiveOfAKindGroup?.ToList() ?? new List<Card>();
+        Debug.Log($"Determining Five of a Kind cards. Hand: [{string.Join(", ", hand.Select(card => card.ToString()))}]");
+
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value);
+        int wildCount = hand.Count(card => card.IsWild);
+
+        // Find the group with the highest count + wild cards that form five of a kind
+        var fiveOfAKindGroup = groupedByValue
+            .Where(group => group.Count() + wildCount >= 5)
+            .OrderByDescending(group => group.Key)
+            .FirstOrDefault();
+
+        if (fiveOfAKindGroup != null)
+        {
+            Debug.Log($"Found potential Five of a Kind group: [{string.Join(", ", fiveOfAKindGroup.Select(card => card.ToString()))}]");
+
+            // Determine how many wild cards are needed to complete the five of a kind
+            wildCount = 5 - fiveOfAKindGroup.Count();
+            var actualFiveOfAKind = fiveOfAKindGroup.ToList();
+
+            // Add wild cards if necessary
+            if (wildCount > 0)
+            {
+                var wildCards = hand.Where(card => card.IsWild).Take(wildCount);
+                actualFiveOfAKind.AddRange(wildCards);
+                Debug.Log($"Added {wildCount} wild card(s): [{string.Join(", ", wildCards.Select(card => card.ToString()))}]");
+            }
+
+            // Sort the actualFiveOfAKind by natural cards first, then wild cards
+            actualFiveOfAKind = actualFiveOfAKind
+                .OrderByDescending(card => !card.IsWild)  // Natural cards first
+                .ThenByDescending(card => card.Value)     // Then by value
+                .ToList();
+
+            Debug.Log($"Sorted Five of a Kind cards: [{string.Join(", ", actualFiveOfAKind.Select(card => card.ToString()))}]");
+
+            return actualFiveOfAKind;
+        }
+
+        Debug.Log("No Five of a Kind found.");
+        return new List<Card>();
     }
+
 
     private List<Card> DetermineRoyalFlushCards(List<Card> hand)
     {
@@ -103,29 +223,129 @@ public class PokerHandEvaluator : MonoBehaviour
         return sortedHand.All(card => card.Suit == sortedHand[0].Suit) && IsStraight(sortedHand);
     }
 
-    private List<Card> DetermineFourOfAkindCards(List<Card> hand)
+    private List<Card> DetermineFourOfAKindCards(List<Card> hand)
     {
-        var groupedByValue = hand.GroupBy(card => card.Value);
-        var fourOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() == 4);
-        return fourOfAKindGroup?.ToList() ?? new List<Card>();
+        Debug.Log($"Determining Four of a Kind cards. Hand: [{string.Join(", ", hand.Select(card => card.ToString()))}]");
+
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value);
+        int wildCount = hand.Count(card => card.IsWild);
+
+        // Find the group with the highest count + wild cards that form four of a kind
+        var fourOfAKindGroup = groupedByValue
+            .Where(group => group.Count() + wildCount >= 4)
+            .OrderByDescending(group => group.Key)
+            .FirstOrDefault();
+
+        if (fourOfAKindGroup != null)
+        {
+            Debug.Log($"Found potential Four of a Kind group: [{string.Join(", ", fourOfAKindGroup.Select(card => card.ToString()))}]");
+
+            // Determine how many wild cards are needed to complete the four of a kind
+            wildCount = 4 - fourOfAKindGroup.Count();
+            var actualFourOfAKind = fourOfAKindGroup.ToList();
+
+            // Add wild cards if necessary
+            if (wildCount > 0)
+            {
+                var wildCards = hand.Where(card => card.IsWild).Take(wildCount);
+                actualFourOfAKind.AddRange(wildCards);
+                Debug.Log($"Added {wildCount} wild card(s): [{string.Join(", ", wildCards.Select(card => card.ToString()))}]");
+            }
+
+            // Determine the kicker(s) for the four of a kind
+            var kickers = hand.Except(actualFourOfAKind).OrderByDescending(card => card.Value).Take(1).ToList();
+            Debug.Log($"Kicker: [{string.Join(", ", kickers.Select(card => card.ToString()))}]");
+
+            // Sort the actualFourOfAKind by natural cards first, then wild cards
+            actualFourOfAKind = actualFourOfAKind
+                .OrderByDescending(card => !card.IsWild)  // Natural cards first
+                .ThenByDescending(card => card.Value)     // Then by value
+                .ToList();
+
+            Debug.Log($"Sorted Four of a Kind cards: [{string.Join(", ", actualFourOfAKind.Select(card => card.ToString()))}]");
+
+            // Combine the Four of a Kind with the kicker
+            var finalHand = actualFourOfAKind.Concat(kickers).ToList();
+            Debug.Log($"Final hand: [{string.Join(", ", finalHand.Select(card => card.ToString()))}]");
+
+            return finalHand;
+        }
+
+        Debug.Log("No Four of a Kind found.");
+        return new List<Card>();
     }
+
 
     private List<Card> DetermineFullHouseCards(List<Card> hand)
     {
-        var groupedByValue = hand.GroupBy(card => card.Value);
-        var threeOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() == 3);
-        var pairGroup = groupedByValue.FirstOrDefault(group => group.Count() == 2);
-        var fullHouse = new List<Card>();
+        Debug.Log($"Determining Full House cards. Hand: [{string.Join(", ", hand.Select(card => card.ToString()))}]");
+
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value).ToList();
+        int wildCount = hand.Count(card => card.IsWild);
+
+        // Find the group with the highest count + wild cards that form three of a kind
+        var threeOfAKindGroup = groupedByValue
+            .Where(group => group.Count() + wildCount >= 3)
+            .OrderByDescending(group => group.Key)
+            .FirstOrDefault();
+
         if (threeOfAKindGroup != null)
         {
-            fullHouse.AddRange(threeOfAKindGroup);
+            // Adjust wild count
+            wildCount -= 3 - threeOfAKindGroup.Count();
+            var actualThreeOfAKind = threeOfAKindGroup.ToList();
+
+            // Add wild cards if necessary
+            if (wildCount > 0)
+            {
+                var wildCards = hand.Where(card => card.IsWild).Take(3 - actualThreeOfAKind.Count());
+                actualThreeOfAKind.AddRange(wildCards);
+                Debug.Log($"Added {wildCards.Count()} wild card(s) to complete Three of a Kind: [{string.Join(", ", wildCards.Select(card => card.ToString()))}]");
+            }
+
+            // Exclude the three of a kind cards and find a pair
+            var remainingCards = hand.Except(actualThreeOfAKind).ToList();
+            groupedByValue = remainingCards.Where(card => !card.IsWild).GroupBy(card => card.Value).ToList();
+
+            var pairGroup = groupedByValue
+                .Where(group => group.Count() + wildCount >= 2)
+                .OrderByDescending(group => group.Key)
+                .FirstOrDefault();
+
+            if (pairGroup != null)
+            {
+                var actualPair = pairGroup.ToList();
+
+                // Add wild cards if necessary
+                if (wildCount > 0)
+                {
+                    var wildCards = remainingCards.Where(card => card.IsWild).Take(2 - actualPair.Count());
+                    actualPair.AddRange(wildCards);
+                    Debug.Log($"Added {wildCards.Count()} wild card(s) to complete Pair: [{string.Join(", ", wildCards.Select(card => card.ToString()))}]");
+                }
+
+                // Sort the actualThreeOfAKind and actualPair by natural cards first, then wild cards
+                actualThreeOfAKind = actualThreeOfAKind
+                    .OrderByDescending(card => !card.IsWild)  // Natural cards first
+                    .ThenByDescending(card => card.Value)     // Then by value
+                    .ToList();
+
+                actualPair = actualPair
+                    .OrderByDescending(card => !card.IsWild)  // Natural cards first
+                    .ThenByDescending(card => card.Value)     // Then by value
+                    .ToList();
+
+                var finalHand = actualThreeOfAKind.Concat(actualPair).ToList();
+                Debug.Log($"Final hand: [{string.Join(", ", finalHand.Select(card => card.ToString()))}]");
+
+                return finalHand;
+            }
         }
-        if (pairGroup != null)
-        {
-            fullHouse.AddRange(pairGroup);
-        }
-        return fullHouse;
+
+        Debug.Log("No Full House found.");
+        return new List<Card>();
     }
+
 
     private List<Card> DetermineFlushCards(List<Card> hand)
     {
@@ -158,34 +378,155 @@ public class PokerHandEvaluator : MonoBehaviour
 
     private List<Card> DetermineThreeOfAKindCards(List<Card> hand)
     {
-        var groupedByValue = hand.GroupBy(card => card.Value);
-        var threeOfAKindGroup = groupedByValue.FirstOrDefault(group => group.Count() == 3);
-        return threeOfAKindGroup?.ToList() ?? new List<Card>();
+        Debug.Log($"Determining Three of a Kind cards. Hand: [{string.Join(", ", hand.Select(card => card.ToString()))}]");
+
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value);
+        int wildCount = hand.Count(card => card.IsWild);
+
+        // Find the group with the highest count + wild cards that form three of a kind
+        var threeOfAKindGroup = groupedByValue
+            .Where(group => group.Count() + wildCount >= 3)
+            .OrderByDescending(group => group.Key)
+            .FirstOrDefault();
+
+        if (threeOfAKindGroup != null)
+        {
+            Debug.Log($"Found potential Three of a Kind group: [{string.Join(", ", threeOfAKindGroup.Select(card => card.ToString()))}]");
+
+            // Determine how many wild cards are needed to complete the three of a kind
+            wildCount = 3 - threeOfAKindGroup.Count();
+            var actualThreeOfAKind = threeOfAKindGroup.ToList();
+
+            // Add wild cards if necessary
+            if (wildCount > 0)
+            {
+                var wildCards = hand.Where(card => card.IsWild).Take(wildCount);
+                actualThreeOfAKind.AddRange(wildCards);
+                Debug.Log($"Added {wildCount} wild card(s): [{string.Join(", ", wildCards.Select(card => card.ToString()))}]");
+            }
+
+            // Include the remaining cards in the hand excluding the Three of a Kind cards
+            var remainingCards = hand.Except(actualThreeOfAKind).OrderByDescending(card => card.Value).ToList();
+            Debug.Log($"Remaining cards: [{string.Join(", ", remainingCards.Select(card => card.ToString()))}]");
+
+            // Sort the actualThreeOfAKind by natural cards first, then wild cards
+            actualThreeOfAKind = actualThreeOfAKind
+                .OrderByDescending(card => !card.IsWild)  // Natural cards first
+                .ThenByDescending(card => card.Value)     // Then by value
+                .ToList();
+
+            Debug.Log($"Sorted Three of a Kind cards: [{string.Join(", ", actualThreeOfAKind.Select(card => card.ToString()))}]");
+
+            // Combine the Three of a Kind with the remaining highest cards
+            var finalHand = actualThreeOfAKind.Concat(remainingCards.Take(2)).ToList();
+            Debug.Log($"Final hand: [{string.Join(", ", finalHand.Select(card => card.ToString()))}]");
+
+            return finalHand;
+        }
+
+        Debug.Log("No Three of a Kind found.");
+        return new List<Card>();
     }
 
     private List<Card> DetermineTwoPairCards(List<Card> hand)
     {
-        var groupedByValue = hand.GroupBy(card => card.Value);
-        var pairs = groupedByValue.Where(group => group.Count() == 2).OrderByDescending(group => group.Key).Take(2);
-        if (pairs.Count() == 2)
+        Debug.Log($"Determining Two Pair cards. Hand: [{string.Join(", ", hand.Select(card => card.ToString()))}]");
+
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value).ToList();
+        int wildCount = hand.Count(card => card.IsWild);
+
+        // Find pairs
+        var pairs = groupedByValue.Where(group => group.Count() == 2).OrderByDescending(group => group.Key).ToList();
+
+        // If we have two natural pairs
+        if (pairs.Count >= 2)
         {
-            var remainingCard = hand.Except(pairs.SelectMany(pair => pair)).OrderByDescending(card => card.HighValue).FirstOrDefault();
-            return pairs.SelectMany(pair => pair).Concat(new[] { remainingCard }).ToList();
+            var topTwoPairs = pairs.Take(2).SelectMany(group => group).ToList();
+            var remainingCards = hand.Except(topTwoPairs).OrderByDescending(card => card.Value).Take(1).ToList();
+            var finalHand = topTwoPairs.Concat(remainingCards).ToList();
+            Debug.Log($"Final hand with natural pairs: [{string.Join(", ", finalHand.Select(card => card.ToString()))}]");
+            return finalHand;
         }
+
+        // If we need to use wild cards to complete pairs
+        List<Card> bestTwoPairs = new List<Card>();
+        foreach (var group in groupedByValue)
+        {
+            if (group.Count() == 1 && wildCount > 0)
+            {
+                wildCount--;
+                bestTwoPairs.AddRange(group.Concat(hand.Where(card => card.IsWild).Take(1)));
+                if (bestTwoPairs.Count == 4)
+                    break;
+            }
+        }
+
+        if (bestTwoPairs.Count < 4 && wildCount > 0)
+        {
+            var highestPair = pairs.FirstOrDefault();
+            if (highestPair != null)
+            {
+                bestTwoPairs.AddRange(highestPair);
+                wildCount--;
+                var wildCard = hand.Where(card => card.IsWild).FirstOrDefault();
+                if (wildCard != null)
+                {
+                    bestTwoPairs.Add(wildCard);
+                }
+            }
+        }
+
+        if (bestTwoPairs.Count == 4)
+        {
+            var remainingCards = hand.Except(bestTwoPairs).OrderByDescending(card => card.Value).Take(1).ToList();
+            var finalHand = bestTwoPairs.Concat(remainingCards).ToList();
+            Debug.Log($"Final hand with wild cards: [{string.Join(", ", finalHand.Select(card => card.ToString()))}]");
+            return finalHand;
+        }
+
+        Debug.Log("No Two Pair found.");
         return new List<Card>();
     }
 
+
     private List<Card> DeterminePairCards(List<Card> hand)
     {
-        var groupedByValue = hand.GroupBy(card => card.Value);
-        var pairGroup = groupedByValue.FirstOrDefault(group => group.Count() == 2);
-        if (pairGroup != null)
+        Debug.Log($"Determining Pair cards. Hand: [{string.Join(", ", hand.Select(card => card.ToString()))}]");
+
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value).ToList();
+        int wildCount = hand.Count(card => card.IsWild);
+
+        // Find pairs
+        var pairs = groupedByValue.Where(group => group.Count() == 2).OrderByDescending(group => group.Key).ToList();
+
+        // If we have a natural pair
+        if (pairs.Count > 0)
         {
-            var remainingCards = hand.Except(pairGroup).OrderByDescending(card => card.HighValue).Take(3);
-            return pairGroup.Concat(remainingCards).ToList();
+            var topPair = pairs.First().ToList();
+            var remainingCards = hand.Except(topPair).OrderByDescending(card => card.Value).Take(3).ToList();
+            var finalHand = topPair.Concat(remainingCards).ToList();
+            Debug.Log($"Final hand with natural pair: [{string.Join(", ", finalHand.Select(card => card.ToString()))}]");
+            return finalHand;
         }
+
+        // If we need to use wild cards to complete a pair
+        var singleCards = groupedByValue.Where(group => group.Count() == 1).OrderByDescending(group => group.Key).ToList();
+        if (singleCards.Count > 0 && wildCount > 0)
+        {
+            var topSingle = singleCards.First().ToList();
+            wildCount--;
+            var wildCard = hand.Where(card => card.IsWild).FirstOrDefault();
+            var pairWithWild = topSingle.Concat(new[] { wildCard }).ToList();
+            var remainingCards = hand.Except(pairWithWild).OrderByDescending(card => card.Value).Take(3).ToList();
+            var finalHand = pairWithWild.Concat(remainingCards).ToList();
+            Debug.Log($"Final hand with wild card: [{string.Join(", ", finalHand.Select(card => card.ToString()))}]");
+            return finalHand;
+        }
+
+        Debug.Log("No Pair found.");
         return new List<Card>();
     }
+
 
     private List<Card> DetermineHighCard(List<Card> hand)
     {
@@ -194,6 +535,10 @@ public class PokerHandEvaluator : MonoBehaviour
 
     private int CalculateRankWeight(HandRank handRank, List<Card> hand)
     {
+        if (currentGameMode == PokerGameMode.DeucesAndJacks && HasNaturalSevensPair(hand))
+        {
+            return 12;  // Highest weight for a pair of natural sevens in "Deuces and Jacks"
+        }
         // Assign weights or ranks based on hand rank
         switch (handRank)
         {
@@ -226,6 +571,11 @@ public class PokerHandEvaluator : MonoBehaviour
 
     public HandRank EvaluateHand(List<Card> hand)
     {
+        if (currentGameMode == PokerGameMode.DeucesAndJacks && HasNaturalSevensPair(hand))
+        {
+            return HandRank.OnePair;
+        }
+
         if (HasFiveOfAKind(hand))
             return HandRank.FiveOfAKind;
 
@@ -258,89 +608,298 @@ public class PokerHandEvaluator : MonoBehaviour
 
         return HandRank.HighCard;  // Default to High Card if none of the above
     }
+    private bool HasNaturalSevensPair(List<Card> hand)
+    {
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value);
+        Debug.Log("A pair of natural sevens take all");
+        return groupedByValue.Any(group => group.Key == 7 && group.Count() >= 2);
+    }
 
     private bool HasFiveOfAKind(List<Card> hand)
     {
-        var groupedByValue = hand.GroupBy(card => card.Value);
-        return groupedByValue.Any(group => group.Count() == 5);
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value);
+        int wildCount = hand.Count(card => card.IsWild);
+
+        return groupedByValue.Any(group => group.Count() + wildCount >= 5);
     }
 
     private bool HasRoyalFlush(List<Card> hand)
     {
-        // Check for flush
-        if (!HasFlush(hand))
+        // Sort hand by value
+        var sortedHand = hand.OrderBy(card => card.Value).ToList();
+        int wildCount = hand.Count(card => card.IsWild);
+
+        // Group by suit to check for flush
+        var suits = sortedHand.GroupBy(card => card.Suit);
+
+        foreach (var suitGroup in suits)
         {
-            return false;
-        }
-        // Sort hand by rank
-        hand.Sort((a, b) => a.Value.CompareTo(b.Value));
-
-        // Check for Royal Flush (A, K, Q, J, 10 in the same suit)
-        return hand[0].Value == 01 &&    // Ace
-               hand[1].Value == 10 &&   // 10
-               hand[2].Value == 11 &&   // Jack (J)
-               hand[3].Value == 12 &&   // Queen (Q)
-               hand[4].Value == 13;     //King (K)
-
-    }
-
-    private bool HasStraightFlush(List<Card> hand)
-    {
-        // Check for flush
-        if (!HasFlush(hand))
-        {
-            return false;
-        }
-
-        // Check for straight
-        if (!HasStraight(hand))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private bool HasFourOfAKind(List<Card> hand)
-    {
-        return hand.GroupBy(card => card.Value).Any(group => group.Count() == 4);
-    }
-    private bool HasFullHouse(List<Card> hand)
-    {
-        var groupedByRank = hand.GroupBy(card => card.Value);
-        return groupedByRank.Any(group => group.Count() == 3) && groupedByRank.Any(group => group.Count() == 2);
-    }
-    private bool HasFlush(List<Card> hand)
-    {
-        return hand.All(card => card.Suit == hand.First().Suit);
-    }
-    private bool HasStraight(List<Card> hand)
-    {
-        // Sort hand by rank
-        hand.Sort((a, b) => a.Value.CompareTo(b.Value));
-
-        // Check for straight
-        for (int i = 0; i < hand.Count - 1; i++)
-        {
-            if (hand[i + 1].Value != hand[i].Value + 1)
+            // Ensure we have at least one non-wild card in the suit group
+            if (suitGroup.Count(card => !card.IsWild) > 0)
             {
-                return false;
+                var suitedCards = suitGroup.Where(card => !card.IsWild).OrderBy(card => card.Value).ToList();
+                var wildCards = suitGroup.Where(card => card.IsWild).ToList();
+
+                List<int> requiredValues = new List<int> { 10, 11, 12, 13, 14 };
+                int wildsUsed = 0;
+
+                foreach (var card in suitedCards)
+                {
+                    if (requiredValues.Contains(card.Value))
+                    {
+                        requiredValues.Remove(card.Value);
+                    }
+                }
+
+                wildsUsed = requiredValues.Count;
+                if (wildsUsed <= wildCards.Count)
+                {
+                    return true;
+                }
             }
         }
 
-        return true;
+        return false;
     }
+
+
+
+    private bool HasStraightFlush(List<Card> hand)
+    {
+        var wildCards = hand.Where(card => card.IsWild).ToList();
+        var nonWildCards = hand.Where(card => !card.IsWild).ToList();
+
+        var suits = nonWildCards.GroupBy(card => card.Suit);
+
+        foreach (var suitGroup in suits)
+        {
+            var suitedCards = suitGroup.OrderBy(card => card.Value).ToList();
+            if (HasStraightWithWilds(suitedCards, wildCards))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool HasStraightWithWilds(List<Card> suitedCards, List<Card> wildCards)
+    {
+        var sortedValues = suitedCards.Select(card => card.Value).Distinct().OrderBy(value => value).ToList();
+        int wildCount = wildCards.Count;
+
+        for (int i = 0; i < sortedValues.Count - 4; i++)
+        {
+            int consecutiveCount = 1;
+            int wildsUsed = 0;
+
+            for (int j = i; j < sortedValues.Count - 1; j++)
+            {
+                if (sortedValues[j + 1] == sortedValues[j] + 1)
+                {
+                    consecutiveCount++;
+                }
+                else if (sortedValues[j + 1] != sortedValues[j])
+                {
+                    int gap = sortedValues[j + 1] - sortedValues[j] - 1;
+                    if (wildsUsed + gap <= wildCount)
+                    {
+                        wildsUsed += gap;
+                        consecutiveCount += gap + 1;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                if (consecutiveCount + wildsUsed >= 5)
+                {
+                    return true;
+                }
+            }
+
+            if (consecutiveCount + wildsUsed >= 5)
+            {
+                return true;
+            }
+        }
+
+        // Check for Ace as high straight
+        if (sortedValues.Contains(1) && sortedValues.Max() >= 10)
+        {
+            sortedValues.Add(14); // Ace as high
+            sortedValues.Sort();
+            return HasStraightWithWilds(sortedValues.Select(value => new Card("", value, null, null)).ToList(), wildCards);
+        }
+
+        return false;
+    }
+
+
+    private bool HasFourOfAKind(List<Card> hand)
+    {
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value);
+        int wildCount = hand.Count(card => card.IsWild);
+
+        return groupedByValue.Any(group => group.Count() + wildCount >= 4);
+    }
+    private bool HasFullHouse(List<Card> hand)
+    {
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value).ToList();
+        int wildCount = hand.Count(card => card.IsWild);
+
+        bool hasThreeOfAKind = false;
+        bool hasPair = false;
+
+        // Try to form a three of a kind first
+        foreach (var group in groupedByValue)
+        {
+            if (group.Count() + wildCount >= 3)
+            {
+                hasThreeOfAKind = true;
+                wildCount -= Mathf.Max(0, 3 - group.Count());  // Use wild cards for three of a kind if necessary
+                groupedByValue.Remove(group);
+                break;
+            }
+        }
+
+        // If we formed a three of a kind, check if we can form a pair with remaining cards and wild cards
+        if (hasThreeOfAKind)
+        {
+            foreach (var group in groupedByValue)
+            {
+                if (group.Count() >= 2)
+                {
+                    hasPair = true;
+                    break;
+                }
+            }
+
+            if (!hasPair && wildCount > 0)
+            {
+                hasPair = groupedByValue.Any(group => group.Count() == 1) || wildCount >= 2;
+            }
+        }
+
+        return hasThreeOfAKind && hasPair;
+    }
+    private bool HasFlush(List<Card> hand)
+    {
+        // Separate wild cards from non-wild cards
+        var nonWildCards = hand.Where(card => !card.IsWild).ToList();
+        int wildCount = hand.Count(card => card.IsWild);
+
+        // Group the non-wild cards by suit
+        var groupedBySuit = nonWildCards.GroupBy(card => card.Suit);
+
+        // Check if any suit group, with the addition of wild cards, can form a flush
+        foreach (var group in groupedBySuit)
+        {
+            if (group.Count() + wildCount >= 5)
+            {
+                return true;
+            }
+        }
+
+        // Special case: if the hand contains 5 wild cards, it should be considered a flush of any suit
+        return wildCount >= 5;
+    }
+    private bool HasStraight(List<Card> hand)
+    {
+        var nonWildCards = hand.Where(card => !card.IsWild).OrderBy(card => card.Value).ToList();
+        int wildCount = hand.Count(card => card.IsWild);
+
+        // Function to check if there is a straight in the given list of cards
+        bool HasStraightWithWilds(List<int> values, int availableWilds)
+        {
+            for (int i = 0; i <= values.Count - 1; i++)
+            {
+                int consecutiveCount = 1;
+                int wildsUsed = 0;
+
+                for (int j = i; j < values.Count - 1; j++)
+                {
+                    if (values[j + 1] == values[j] + 1)
+                    {
+                        consecutiveCount++;
+                    }
+                    else if (values[j + 1] != values[j])
+                    {
+                        int gap = values[j + 1] - values[j] - 1;
+                        if (wildsUsed + gap <= availableWilds)
+                        {
+                            wildsUsed += gap;
+                            consecutiveCount += gap + 1;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                if (consecutiveCount + wildsUsed >= 6)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // Extract the values and check for a straight
+        var cardValues = nonWildCards.Select(card => card.Value).Distinct().ToList();
+        if (cardValues.Count < 5 - wildCount)
+        {
+            return false; // Not enough cards even with wilds
+        }
+
+        // Check for straight with Ace as low
+        cardValues.Sort();
+        if (HasStraightWithWilds(cardValues, wildCount))
+        {
+            return true;
+        }
+
+        // Check for straight with Ace as high
+        if (cardValues.Contains(1)) // Ace present
+        {
+            cardValues.Add(14); // Ace as high
+            cardValues.Sort();
+            if (HasStraightWithWilds(cardValues, wildCount))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private bool HasThreeOfAKind(List<Card> hand)
     {
-        return hand.GroupBy(card => card.Value).Any(group => group.Count() == 3);
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value);
+        int wildCount = hand.Count(card => card.IsWild);
+
+        return groupedByValue.Any(group => group.Count() + wildCount >= 3);
     }
     private bool HasTwoPair(List<Card> hand)
     {
-        return hand.GroupBy(card => card.Value).Count(group => group.Count() == 2) == 2;
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value);
+        int wildCount = hand.Count(card => card.IsWild);
+
+        int pairCount = groupedByValue.Count(group => group.Count() == 2);
+        int singleCount = groupedByValue.Count(group => group.Count() == 1);
+
+        return pairCount + Mathf.Min(wildCount, singleCount) >= 2;
     }
     private bool HasOnePair(List<Card> hand)
     {
-        return hand.GroupBy(card => card.Value).Any(group => group.Count() == 2);
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value);
+        int wildCount = hand.Count(card => card.IsWild);
+
+        return groupedByValue.Any(group => group.Count() + wildCount >= 2);
+        
     }
 
     public int CompareHands(List<Card> hand1, List<Card> hand2)
@@ -350,10 +909,12 @@ public class PokerHandEvaluator : MonoBehaviour
 
         if (result1.rankWeight > result2.rankWeight)
         {
+            Debug.Log("Player 1 wins with rank: " + result1.handRank);
             return 1; // Hand1 wins
         }
         else if (result1.rankWeight < result2.rankWeight)
         {
+            Debug.Log("Player 2 wins with rank: " + result2.handRank);
             return -1; // Hand2 wins
         }
         else
@@ -362,12 +923,12 @@ public class PokerHandEvaluator : MonoBehaviour
 
             if (comparisonResult > 0)
             {
-                Debug.Log("Player 1 wins with higher cards");
+                Debug.Log("Player 1 wins with higher cards: " + string.Join(", ", result1.bestCards.Select(card => card.ToString())));
                 return 1;
             }
             else if (comparisonResult < 0)
             {
-                Debug.Log("Player 2 wins with higher cards");
+                Debug.Log("Player 2 wins with higher cards: " + string.Join(", ", result2.bestCards.Select(card => card.ToString())));
                 return -1;
             }
             else
@@ -379,11 +940,16 @@ public class PokerHandEvaluator : MonoBehaviour
     }
     private int CompareBestCards(List<Card> bestCards1, List<Card> bestCards2)
     {
+        Debug.Log("Comparing best cards not in for loop");
+        Debug.Log($"Comparing best cards: bestCards1 count = {bestCards1.Count}, bestCards2 count = {bestCards2.Count}");
         for (int i = 0; i < bestCards1.Count; i++)
         {
-            if (bestCards1[i].HighValue > bestCards2[i].HighValue)
+            Debug.Log($"Comparing best cards in for loop: i = {i}");
+            Debug.Log($"bestCards1[{i}] = {bestCards1[i].ToString()}");
+            Debug.Log($"bestCards2[{i}] = {bestCards2[i].ToString()}");
+            if (bestCards1[i].Value > bestCards2[i].Value)
                 return 1; // Player 1 wins
-            else if (bestCards1[i].HighValue < bestCards2[i].HighValue)
+            else if (bestCards1[i].Value < bestCards2[i].Value)
                 return -1; // Player 2 wins
         }
         return 0;
