@@ -6,6 +6,11 @@ using System.Linq;
 
 public class PokerHandEvaluator : MonoBehaviour
 {
+    public PokerGameMode currentGameMode;
+    public void SetGameMode(PokerGameMode gameMode)
+    {
+        currentGameMode = gameMode;
+    }
     public enum HandRank
     {
         HighCard,
@@ -530,6 +535,10 @@ public class PokerHandEvaluator : MonoBehaviour
 
     private int CalculateRankWeight(HandRank handRank, List<Card> hand)
     {
+        if (currentGameMode == PokerGameMode.DeucesAndJacks && HasNaturalSevensPair(hand))
+        {
+            return 12;  // Highest weight for a pair of natural sevens in "Deuces and Jacks"
+        }
         // Assign weights or ranks based on hand rank
         switch (handRank)
         {
@@ -562,6 +571,11 @@ public class PokerHandEvaluator : MonoBehaviour
 
     public HandRank EvaluateHand(List<Card> hand)
     {
+        if (currentGameMode == PokerGameMode.DeucesAndJacks && HasNaturalSevensPair(hand))
+        {
+            return HandRank.OnePair;
+        }
+
         if (HasFiveOfAKind(hand))
             return HandRank.FiveOfAKind;
 
@@ -593,6 +607,12 @@ public class PokerHandEvaluator : MonoBehaviour
             return HandRank.OnePair;
 
         return HandRank.HighCard;  // Default to High Card if none of the above
+    }
+    private bool HasNaturalSevensPair(List<Card> hand)
+    {
+        var groupedByValue = hand.Where(card => !card.IsWild).GroupBy(card => card.Value);
+        Debug.Log("A pair of natural sevens take all");
+        return groupedByValue.Any(group => group.Key == 7 && group.Count() >= 2);
     }
 
     private bool HasFiveOfAKind(List<Card> hand)
@@ -879,6 +899,7 @@ public class PokerHandEvaluator : MonoBehaviour
         int wildCount = hand.Count(card => card.IsWild);
 
         return groupedByValue.Any(group => group.Count() + wildCount >= 2);
+        
     }
 
     public int CompareHands(List<Card> hand1, List<Card> hand2)

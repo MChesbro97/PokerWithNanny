@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class Card
@@ -13,6 +14,7 @@ public class Card
 
     private static PokerGameMode currentGameMode;
     private static int followTheQueenWildValue = -1;
+    private static List<Card> currentHand;
 
     public Card(string suit, int value, Sprite cardSprite, Sprite backSprite)
     {
@@ -36,6 +38,11 @@ public class Card
     {
         currentGameMode = gameMode;
         followTheQueenWildValue = -1;
+    }
+    public static void SetCurrentHand(List<Card> hand)
+    {
+        currentHand = hand;
+        UpdateAllCardsWildStatus();
     }
     public static void SetFollowTheQueenWildValue(int value)
     {
@@ -65,21 +72,33 @@ public class Card
             case PokerGameMode.FollowTheQueen:
                 IsWild = (Value == 12 || Value == followTheQueenWildValue);
                 break;
+            case PokerGameMode.KingsAndLittleOnes:
+                IsWild = (Value == 13 || IsLowestValueInHand());
+                break;
             default:
                 IsWild = false;
                 break;
         }
         Debug.Log($"Card {this} wild status: {IsWild}");
     }
+    private bool IsLowestValueInHand()
+    {
+        if (currentGameMode != PokerGameMode.KingsAndLittleOnes || currentHand == null)
+        {
+            return false;
+        }
 
-    //public static void UpdateAllCardsWildStatus()
-    //{
-    //    // Assuming all cards are stored somewhere, update their wild status
-    //    // This method should be called after the game mode is set to update existing cards
-    //    var allCards = FindObjectsOfType<Card>(); // Example, adjust based on your implementation
-    //    foreach (var cardComponent in allCards)
-    //    {
-    //        cardComponent.CardData.SetWildStatus();
-    //    }
-    //}
+        int lowestValue = currentHand.Min(card => card.Value);
+        return Value == lowestValue;
+    }
+    public static void UpdateAllCardsWildStatus()
+    {
+        if (currentHand != null)
+        {
+            foreach (var card in currentHand)
+            {
+                card.SetWildStatus();
+            }
+        }
+    }
 }

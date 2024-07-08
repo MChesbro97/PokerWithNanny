@@ -41,6 +41,7 @@ public class CardGame : MonoBehaviour
         selectedGameMode = gameModeSelector.GetSelectedGameMode();
 
         Card.SetGameMode(selectedGameMode);
+        handEvaluator.SetGameMode(selectedGameMode);
 
         deck = new Deck();
         deck.Shuffle();
@@ -155,13 +156,6 @@ public class CardGame : MonoBehaviour
 
         EvaluateHand(playerHand1, "Player 1");
         EvaluateHand(playerHand2, "Player 2");
-
-        //string playerHand1String = string.Join(", ", playerHand1.Select(card => $"{card.Value} of {card.Suit}"));
-        //string playerHand2String = string.Join(", ", playerHand2.Select(card => $"{card.Value} of {card.Suit}"));
-
-        //// Log the hands
-        //Debug.Log($"Player 1's hand: [{playerHand1String}]");
-        //Debug.Log($"Player 2's hand: [{playerHand2String}]");
 
         int comparisonResult = handEvaluator.CompareHands(playerHand1, playerHand2);
         //if (comparisonResult > 0)
@@ -355,6 +349,11 @@ public class CardGame : MonoBehaviour
                 UpdateAllCardsWildStatus();
                 queenDealtFaceUp=false;
             }
+        }
+
+        if (selectedGameMode == PokerGameMode.KingsAndLittleOnes)
+        {
+            Card.SetCurrentHand(playerHand); // Update wild status for all cards in hand
         }
     }
 
