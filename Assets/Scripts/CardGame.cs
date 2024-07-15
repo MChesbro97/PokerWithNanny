@@ -11,6 +11,7 @@ public class CardGame : MonoBehaviour
     private PokerHandEvaluator handEvaluator;
     public PokerGameMode selectedGameMode;
     public GameModeSelector gameModeSelector;
+    public BetManager betManager;
 
     public GameObject cardPrefab;
     public GameObject hand1;
@@ -22,6 +23,12 @@ public class CardGame : MonoBehaviour
     void Start()
     { 
         handEvaluator = GetComponent<PokerHandEvaluator>();
+        List<Player> players = new List<Player>
+        {
+            new Player(1000),
+            new Player(1000)
+        };
+        betManager = new BetManager(players, 10, 20);
     }
 
     public void NewGame()
@@ -37,6 +44,7 @@ public class CardGame : MonoBehaviour
         sortingOrder = 0;
         allDealtCards.Clear();
         queenDealtFaceUp = false;
+        betManager.StartNewRound();
 
         selectedGameMode = gameModeSelector.GetSelectedGameMode();
 
@@ -102,14 +110,20 @@ public class CardGame : MonoBehaviour
         if (comparisonResult > 0)
         {
             Debug.Log("Player 1 wins!");
+            betManager.AwardPotToWinner(betManager.GetPlayer(0));
         }
         else if (comparisonResult < 0)
         {
             Debug.Log("Player 2 wins!");
+            betManager.AwardPotToWinner(betManager.GetPlayer(1));
         }
         else
         {
             Debug.Log("It's a tie");
+            int splitPot = betManager.GetTotalPot() / 2;
+            betManager.GetPlayer(0).AddChips(splitPot);
+            betManager.GetPlayer(1).AddChips(splitPot);
+            betManager.ResetBets();
         }
     }
 

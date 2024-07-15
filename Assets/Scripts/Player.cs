@@ -26,11 +26,22 @@ public class Player
         CurrentBet += amount;
         return true;
     }
-
+    public void AddChips(int amount)
+    {
+        TotalChips += amount;
+    }
     public void Fold()
     {
         IsInRound = false;
         CurrentBet = 0;
+    }
+    public void PlaceBet(int amount)
+    {
+        if (amount <= TotalChips)
+        {
+            TotalChips -= amount;
+            CurrentBet += amount;
+        }
     }
 
     public void ResetBet()

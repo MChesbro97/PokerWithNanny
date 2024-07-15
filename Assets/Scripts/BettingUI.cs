@@ -55,6 +55,11 @@ public class BettingUI : MonoBehaviour
         betManager.PlayerRaise(raiseAmount);
         UpdateUI();
     }
+    public void AwardPotToWinner(Player winner)
+    {
+        betManager.AwardPotToWinner(winner);
+        UpdateUI();
+    }
 
     void UpdateUI()
     {

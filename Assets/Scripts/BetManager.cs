@@ -23,6 +23,15 @@ public class BetManager : MonoBehaviour
         bigBlindIndex = 2;
         currentPlayerIndex = (bigBlindIndex + 1) % players.Count;
         totalPot = 0;
+        currentBet = 0;
+        //InitializeBlinds();
+    }
+    private void InitializeBlinds()
+    {
+        int smallBlindIndex = (dealerIndex + 1) % players.Count;
+        int bigBlindIndex = (dealerIndex + 2) % players.Count;
+        players[smallBlindIndex].PlaceBet(smallBlindAmount);
+        players[bigBlindIndex].PlaceBet(bigBlindAmount);
         currentBet = bigBlindAmount;
     }
 
@@ -36,7 +45,7 @@ public class BetManager : MonoBehaviour
             player.ResetBet();
             player.IsInRound = true;
         }
-
+        InitializeBlinds();
         PlaceBlind(smallBlindIndex, smallBlindAmount);
         PlaceBlind(bigBlindIndex, bigBlindAmount);
     }
@@ -121,5 +130,28 @@ public class BetManager : MonoBehaviour
     public int GetCurrentBet()
     {
         return currentBet;
+    }
+    public void AwardPotToWinner(Player winner)
+    {
+        winner.AddChips(totalPot);
+        totalPot = 0;
+        ResetBets();
+    }
+
+    public void ResetBets()
+    {
+        foreach (var player in players)
+        {
+            player.ResetBet();
+        }
+        currentBet = bigBlindAmount;
+    }
+    public Player GetPlayer(int index)
+    {
+        if (index >= 0 && index < players.Count)
+        {
+            return players[index];
+        }
+        return null;
     }
 }
